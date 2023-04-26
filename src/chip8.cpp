@@ -10,8 +10,8 @@ std::vector<Instruction> Chip8::readFromFile(std::filesystem::path path)
             uint8_t byte1, byte2;
             while (!file.eof())
             {
-                file >> byte1;
-                file >> byte2;
+                byte1 = (uint8_t) file.std::istream::get();
+                byte2 = (uint8_t) file.std::istream::get();
                 uint16_t i = (uint16_t) (((uint16_t)(byte1) * 16 * 16) + (uint16_t)(byte2));
                 output.emplace_back(Instruction(i));
             }
