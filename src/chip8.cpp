@@ -1,22 +1,22 @@
 #include "chip8.h"
 
-const Address Chip8::top_stack() const
-{
-    for (size_t i = 15; i > 1; --i )
-    {
-        if (!stack[i].isEmpty())
-        {
-            return stack[i];
-        }
-    }
-    return stack[0];
-}
-
 std::string Address::toString() const
 {
     std::stringstream stream;
     stream << "0x" << std::hex << address;
     return stream.str();
+}
+
+const Address Chip8::top_stack() const
+{
+    return stack[SP];
+}
+
+void Chip8::call(const uint16_t u)
+{
+    ++SP;
+    stack[SP] = PC;
+    PC = Address(u);
 }
 
 std::vector<Instruction> Chip8::readFromFile(const std::filesystem::path path) const
@@ -72,12 +72,19 @@ void Chip8::execute(const Instruction i)
     uint16_t first4bits = (inst & 0xf000) >> 12u;
     switch (first4bits)
     {
-    case static_cast<uint16_t>(1):
+    case 1:
         {
             uint16_t nnn = static_cast<uint16_t>(inst & 0xfff);
             jp(nnn);
             break;
         }
+
+    case 2:
+    {
+        uint16_t nnn = static_cast<uint16_t>(inst & 0xfff);
+        call(nnn);
+        break;
+    }
 
     default:
         break;

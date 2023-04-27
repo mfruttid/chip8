@@ -54,7 +54,7 @@ public:
     timer{ Register() },
     sound{ Register() },
     PC{ Address() },
-    stackPointer{ 0 },
+    SP{ 0 },
     stack{ std::array<Address, 16>() }  {}
 
     // read instructions from file and return a vector with instructions in hexadecimal ints
@@ -64,10 +64,13 @@ public:
     void run(const std::vector<Instruction> instructions);
 
     // instruction 00ee
-    void ret() { PC = top_stack(); --stackPointer; }
+    void ret() { PC = top_stack(); --SP; }
 
     // instrucion 1nnn
-    void jp(uint16_t u) { PC = u; }
+    void jp(const uint16_t u) { PC = u; }
+
+    // instruction 2nnn
+    void call(const uint16_t u);
 
     void execute(const Instruction i);
 
@@ -80,7 +83,7 @@ public:
     Register timer; // 8-bits register for delay
     Register sound; // 8-bits register for sound
     Address PC; // program counter
-    uint8_t stackPointer; // 8 bits for pointing to the topmost level of the stack
+    uint8_t SP; // 8 bits for pointing to the topmost level of the stack
     std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
 
     const Address top_stack() const;
