@@ -1,29 +1,23 @@
-g++ --std=c++20 \
+clang++ --std=c++20 \
 -ggdb \
 -fdiagnostics-show-template-tree \
--Werror \
 -Wextra \
 -Wall \
 -Wpedantic \
 -Wconversion \
--Warith-conversion \
 -Wwrite-strings \
--Warray-bounds=2 \
--Wcast-align=strict \
+-Warray-bounds \
+-Wcast-align \
 -Wcast-qual \
 -Wdouble-promotion \
--Wduplicated-branches \
--Wduplicated-cond \
--Wformat-overflow=2 \
 -Wnull-dereference \
--Wimplicit-fallthrough=5 \
+-Wimplicit-fallthrough \
 -Wshift-negative-value \
 -Wswitch-default \
 -Wswitch-enum \
 -Wuninitialized \
 -Wfloat-equal \
 -Wshadow \
--Wlogical-op \
 -Wvla \
 -Wno-unknown-pragmas \
 ./src/chip8.cpp \
