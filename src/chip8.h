@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <cassert>
 #include <vector>
+#include <random>
+#include <ranges>
 
 
 
@@ -24,6 +26,8 @@ public:
     void update(const uint8_t u) { reg = u; }
 
     void operator+=(const uint16_t u) { reg = static_cast<uint8_t>(reg + u); }
+
+    uint16_t operator+(const uint16_t u) { return static_cast<uint16_t>(u + reg); }
 
     std::string toString() const;
 
@@ -131,6 +135,30 @@ public:
 
     // instruction 8xye
     void shl(const uint8_t xy);
+
+    // instruction 9xy0
+    void sne(const uint8_t xy);
+
+    // instruction Annn
+    void ld_I(const uint16_t nnn);
+
+    // instruction Bnnn
+    void jp_v0(const uint16_t nnn);
+
+    // instruction Cxkk
+    void rnd(const uint16_t xkk);
+
+    // instruction Fx1E
+    void add_I(const uint8_t x);
+
+    // instruction Fx33
+    void ld_B(const uint8_t x);
+
+    // instruction Fx55
+    void ldIVx(const uint8_t x);
+
+    // instruction Fx65
+    void ldVxI(const uint8_t x);
 
     void execute(const Instruction i);
 

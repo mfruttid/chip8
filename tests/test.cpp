@@ -22,16 +22,19 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     Chip8 c;
     c.stack[0] = Address(1);
     c.SP = 0;
-    c.registers[0] = Register(0xf2);
-    c.registers[1] = Register(0x11);
-    Instruction i = Instruction(static_cast<uint16_t>(0x810e));
+    //c.registers[0] = Register(0xf2);
+    //c.registers[1] = Register(0x11);
+    c.ram[0] = 0xf6;
+    c.ram[1] = 0x0c;
+    Instruction i = Instruction(static_cast<uint16_t>(0xf165));
     c.execute(i);
     std::cout << std::hex << c.SP << c.PC.toString() << "\n";
-    for (size_t j = 0; j <= c.SP; ++j)
+    /*for (size_t j = 0; j <= c.SP; ++j)
     {
         std::cout << c.stack[j].toString() << " ";
-    }
-    std::cout << c.registers[1].toString() << " " << c.registers[0xf].toString();
+    }*/
+    std::cout << c.registers[1].toString() << " " << c.registers[0].toString() << "\n";
+    std::cout << std::hex << c.I << " " << static_cast<uint32_t>(c.ram[0]) << " " << static_cast<uint32_t>(c.ram[1]) << " " << static_cast<uint32_t>(c.ram[2]);
 }
 
 int main()
