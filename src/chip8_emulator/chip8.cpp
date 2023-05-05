@@ -1,38 +1,38 @@
 #include "chip8.h"
 #include <cassert>
 
-std::string Chip8_internals::Register::toString() const
+std::string Chip8::Chip8::Register::toString() const
 {
     std::stringstream stream;
     stream << "0x" << std::hex << static_cast<uint16_t>(reg);
     return stream.str();
 }
 
-std::string Chip8_internals::Address::toString() const
+std::string Chip8::Chip8::Address::toString() const
 {
     std::stringstream stream;
     stream << "0x" << std::hex << address;
     return stream.str();
 }
 
-const Chip8_internals::Address Chip8::Chip8::top_stack() const
+const Chip8::Chip8::Address Chip8::Chip8::top_stack() const
 {
     return stack[SP];
 }
 
-Chip8_internals::Pixel Chip8_internals::Pixel::operator^(uint8_t u) const
+Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {
     if (int(status) ^ u)
     {
-        return Chip8_internals::Pixel(Chip8_internals::Status::on);
+        return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
     }
     else
     {
-        return Chip8_internals::Pixel(Chip8_internals::Status::off);
+        return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
     }
 }
 
-bool Chip8_internals::Display::drw(auto a, const uint8_t x, const uint8_t y)
+bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
 {
     bool res = false;
     size_t s = a.size();
@@ -59,7 +59,7 @@ void Chip8::Chip8::call(const uint16_t nnn)
 {
     ++SP;
     stack[SP] = PC;
-    PC = Chip8_internals::Address(nnn);
+    PC = Chip8::Chip8::Address(nnn);
 }
 
 void Chip8::Chip8::se(const uint16_t xkk)
@@ -298,11 +298,11 @@ void Chip8::Chip8::ldVxI(const uint8_t x)
     }
 }
 
-std::vector<Chip8_internals::Instruction> Chip8::Chip8::readFromFile(const std::filesystem::path path) const
+std::vector<Chip8::Chip8::Instruction> Chip8::Chip8::readFromFile(const std::filesystem::path path) const
     {
         assert(exists(path));
 
-        std::vector<Chip8_internals::Instruction> output;
+        std::vector<Chip8::Chip8::Instruction> output;
         std::ifstream file {path};
 
         if (file.is_open())
@@ -327,15 +327,15 @@ std::vector<Chip8_internals::Instruction> Chip8::Chip8::readFromFile(const std::
         }
     }
 
-void Chip8::Chip8::run(const std::vector<Chip8_internals::Instruction> instructions)
+void Chip8::Chip8::run(const std::vector<Chip8::Chip8::Instruction> instructions)
     {
-        for (Chip8_internals::Instruction instruction : instructions)
+        for (Chip8::Chip8::Instruction instruction : instructions)
         {
             execute(instruction);
         }
     }
 
-void Chip8::Chip8::execute(const Chip8_internals::Instruction i)
+void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 {
     uint16_t inst = i.instruction();
     switch (inst)

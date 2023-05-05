@@ -15,84 +15,8 @@ class Chip8;
 }
 
 namespace Chip8_internals {
-    class Register {
-    public:
-        Register() : reg{ 0 } {}
-        Register(uint8_t u) : reg{ u } {}
 
-        bool operator==(const uint8_t u) const { return reg ==u; }
 
-        bool operator==(const Register r) const { return reg == r.reg; }
-
-        bool operator!=(const uint8_t u) const { return reg != u; }
-
-        void update(const uint8_t u) { reg = u; }
-
-        void operator+=(const uint16_t u) { reg = static_cast<uint8_t>(reg + u); }
-
-        uint16_t operator+(const uint16_t u) { return static_cast<uint16_t>(u + reg); }
-
-        std::string toString() const;
-
-        friend class Chip8::Chip8;
-
-    private:
-        uint8_t reg; // the usual register has 8 bits
-    };
-
-    class Address {
-    public:
-        Address() : address{ 0 } {}
-        Address(const uint16_t u) : address{ u } {}
-
-        bool isEmpty() const { return address == 0; }
-
-        std::string toString() const;
-
-        bool operator==(Address a) const { return address == a.address; }
-
-        void operator+=(int i) { address = static_cast<uint16_t>(address+i); }
-
-    private:
-        uint16_t address; // an address consists of 12 bits, so only the rightmost 12 bits are gonna be filled
-    };
-
-    class Instruction {
-    public:
-        explicit Instruction(const uint16_t i) : inst{ i } {}
-
-        void operator+=(const uint16_t x) { inst = static_cast<uint16_t>(inst + x); }
-
-        uint16_t instruction() const {return inst;}
-
-    private:
-        uint16_t inst;
-
-    };
-
-    enum class Status {off, on};
-
-    class Pixel {
-    public:
-        Pixel() : status{ Status::off } { }
-        Pixel(Status s) : status{ s } { }
-        Pixel operator^(uint8_t u) const;
-
-    //private:
-        Status status;
-    };
-
-    class Display {
-    public:
-        Display() : d{ std::array<std::array<Pixel, 64>, 32>() } {}
-
-        // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
-        // returns true if this causes any pixel to be unset and false otherwise
-        bool drw(auto a, const uint8_t x, const uint8_t y);
-
-    private:
-        std::array<std::array<Pixel, 64>, 32> d;
-    };
 
     /*template<uint8_t n>
         requires (n > 0) && (n < 16)
@@ -121,26 +45,101 @@ namespace Chip8_internals {
 
 namespace Chip8 {
     class Chip8 {
+    public: // to be changed to private in the future
+
+        class Register {
+        public:
+            Register() : reg{ 0 } {}
+            Register(uint8_t u) : reg{ u } {}
+
+            bool operator==(const uint8_t u) const { return reg ==u; }
+
+            bool operator==(const Register r) const { return reg == r.reg; }
+
+            bool operator!=(const uint8_t u) const { return reg != u; }
+
+            void update(const uint8_t u) { reg = u; }
+
+            void operator+=(const uint16_t u) { reg = static_cast<uint8_t>(reg + u); }
+
+            uint16_t operator+(const uint16_t u) { return static_cast<uint16_t>(u + reg); }
+
+            std::string toString() const;
+
+            uint8_t reg; // the usual register has 8 bits
+        };
+
+        class Address {
+        public:
+            Address() : address{ 0 } {}
+            Address(const uint16_t u) : address{ u } {}
+
+            bool isEmpty() const { return address == 0; }
+
+            std::string toString() const;
+
+            bool operator==(Address a) const { return address == a.address; }
+
+            void operator+=(int i) { address = static_cast<uint16_t>(address+i); }
+
+            uint16_t address; // an address consists of 12 bits, so only the rightmost 12 bits are gonna be filled
+        };
+
+        class Instruction {
+        public:
+            explicit Instruction(const uint16_t i) : inst{ i } {}
+
+            void operator+=(const uint16_t x) { inst = static_cast<uint16_t>(inst + x); }
+
+            uint16_t instruction() const {return inst;}
+
+            uint16_t inst;
+
+        };
+
+        enum class Status {off, on};
+
+        class Pixel {
+        public:
+            Pixel() : status{ Status::off } { }
+            Pixel(Status s) : status{ s } { }
+            Pixel operator^(uint8_t u) const;
+
+            Status status;
+        };
+
+        class Display {
+        public:
+            Display() : d{ std::array<std::array<Pixel, 64>, 32>() } {}
+
+            // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
+            // returns true if this causes any pixel to be unset and false otherwise
+            bool drw(auto a, const uint8_t x, const uint8_t y);
+
+            std::array<std::array<Pixel, 64>, 32> d;
+        };
+
+
     public:
         Chip8() :
         ram{ std::array<uint8_t, 4096>() },
-        registers{ std::array<Chip8_internals::Register, 16>() },
+        registers{ std::array<Register, 16>() },
         I{ 0 },
-        timer{ Chip8_internals::Register() },
-        sound{ Chip8_internals::Register() },
-        PC{ Chip8_internals::Address() },
+        timer{ Register() },
+        sound{ Register() },
+        PC{ Address() },
         SP{ 0 },
-        stack{ std::array<Chip8_internals::Address, 16>() },
-        display{ Chip8_internals::Display() }  {}
+        stack{ std::array<Address, 16>() },
+        display{ Display() }  {}
 
         // read instructions from file and return a vector with instructions in hexadecimal ints
-        std::vector<Chip8_internals::Instruction> readFromFile(const std::filesystem::path path) const;
+        std::vector<Instruction> readFromFile(const std::filesystem::path path) const;
 
         // runs the instructions
-        void run(const std::vector<Chip8_internals::Instruction> instructions);
+        void run(const std::vector<Instruction> instructions);
 
         // instruction 00e0
-        void cls() { display = Chip8_internals::Display(); }
+        void cls() { display = Display(); }
 
         // instruction 00ee
         void ret() { PC = top_stack(); --SP; }
@@ -220,23 +219,22 @@ namespace Chip8 {
         // instruction fx65
         void ldVxI(const uint8_t x);
 
-        void execute(const Chip8_internals::Instruction i);
+        void execute(const Instruction i);
 
 
     //private:
         // the ram consists of register 0 to 4095 and each register has 8 bits
         std::array<uint8_t, 4096> ram;
 
-        std::array<Chip8_internals::Register, 16> registers; // chip-8 has 16 registers of 8 bits
+        std::array<Register, 16> registers; // chip-8 has 16 registers of 8 bits
         uint16_t I; // 16-bits register to store memory address
-        Chip8_internals::Register timer; // 8-bits register for delay
-        Chip8_internals::Register sound; // 8-bits register for sound
-        Chip8_internals::Address PC; // program counter
+        Register timer; // 8-bits register for delay
+        Register sound; // 8-bits register for sound
+        Address PC; // program counter
         uint8_t SP; // 8 bits for pointing to the topmost level of the stack
-        std::array<Chip8_internals::Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
-        Chip8_internals::Display display;
+        std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
+        Display display;
 
-        const Chip8_internals::Address top_stack() const;
-
+        const Address top_stack() const;
     };
 }
