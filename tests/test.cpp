@@ -24,10 +24,13 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     c.SP = 0;
     //c.registers[0] = Register(0xf2);
     //c.registers[1] = Register(0x11);
-    c.ram[0] = 0xf6;
-    c.ram[1] = 0x0c;
-    c.registers[1].update(0xd4);
-    c.registers[6].update(0x68);
+    c.ram[0] = 0xF0;
+    c.ram[1] = 0x10;
+    c.ram[2] = 0xf0;
+    c.ram[3] = 0x10;
+    c.ram[4] = 0xf0;
+    c.registers[1].update(0x3d);
+    c.registers[6].update(0x1f);
     Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd165));
     c.execute(i);
     std::cout << std::hex << c.SP << c.PC.toString() << "\n";

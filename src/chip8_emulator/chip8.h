@@ -108,7 +108,7 @@ namespace Chip8 {
 
             std::string toString() const
             {
-                std::string res = (status == Status::on)? "1" : "0";
+                std::string res = (status == Status::on)? "#" : ".";
                 return res;
             }
 

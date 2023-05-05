@@ -40,10 +40,10 @@ bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
     assert(x<64 && y<32 && s<16);
     for (size_t i=0; i<s; ++i)
     {
-        int k = i % 32;
+        int k = (y + i) % 32;
         for (int j=7; j>=0; --j)
         {
-            int l = j % 64;
+            int l = (x + j) % 64;
             bool r = (d[k][l].status == Chip8::Chip8::Status::on);
             d[k][l] = d[k][l] ^ static_cast<uint8_t>(a[i] & 1);
             a[i] = a[i] >> 1u;
@@ -59,7 +59,7 @@ bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
 std::string Chip8::Chip8::Display::toString() const
 {
     std::string res = "";
-    for (std::array<Pixel, 64> a : d)
+    for (const std::array<Pixel, 64>& a : d)
     {
         for (Pixel p : a)
         {
@@ -264,8 +264,8 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     uint8_t x = (xyn & 0xf00) >> 8u;
     uint8_t y = (xyn & 0xf0) >> 4u;
     uint8_t n = static_cast<uint8_t>(xyn & 0xf);
-    uint8_t coord_x = (registers[x].reg) / 64;
-    uint8_t coord_y = (registers[y].reg) / 32;
+    uint8_t coord_x = (registers[x].reg) % 64;
+    uint8_t coord_y = (registers[y].reg) % 32;
     std::vector<uint8_t> a;
     for (int i=0; i<n; ++i)
     {
