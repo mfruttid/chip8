@@ -103,7 +103,14 @@ namespace Chip8 {
         public:
             Pixel() : status{ Status::off } { }
             Pixel(Status s) : status{ s } { }
+
             Pixel operator^(uint8_t u) const;
+
+            std::string toString() const
+            {
+                std::string res = (status == Status::on)? "1" : "0";
+                return res;
+            }
 
             Status status;
         };
@@ -115,6 +122,8 @@ namespace Chip8 {
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
             bool drw(auto a, const uint8_t x, const uint8_t y);
+
+            std::string toString() const;
 
             std::array<std::array<Pixel, 64>, 32> d;
         };

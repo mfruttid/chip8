@@ -26,7 +26,9 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     //c.registers[1] = Register(0x11);
     c.ram[0] = 0xf6;
     c.ram[1] = 0x0c;
-    Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xf165));
+    c.registers[1].update(0xd4);
+    c.registers[6].update(0x68);
+    Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd165));
     c.execute(i);
     std::cout << std::hex << c.SP << c.PC.toString() << "\n";
     /*for (size_t j = 0; j <= c.SP; ++j)
@@ -35,6 +37,8 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     }*/
     std::cout << c.registers[1].toString() << " " << c.registers[0].toString() << "\n";
     std::cout << std::hex << c.I << " " << static_cast<uint32_t>(c.ram[0]) << " " << static_cast<uint32_t>(c.ram[1]) << " " << static_cast<uint32_t>(c.ram[2]);
+    std::cout << "\n";
+    std::cout << c.display.toString();
 }
 
 int main()
