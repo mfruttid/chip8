@@ -139,25 +139,25 @@ public:
     // instruction 9xy0
     void sne(const uint8_t xy);
 
-    // instruction Annn
+    // instruction annn
     void ld_I(const uint16_t nnn);
 
-    // instruction Bnnn
+    // instruction bnnn
     void jp_v0(const uint16_t nnn);
 
-    // instruction Cxkk
+    // instruction cxkk
     void rnd(const uint16_t xkk);
 
-    // instruction Fx1E
+    // instruction fx1e
     void add_I(const uint8_t x);
 
-    // instruction Fx33
+    // instruction fx33
     void ld_B(const uint8_t x);
 
-    // instruction Fx55
+    // instruction fx55
     void ldIVx(const uint8_t x);
 
-    // instruction Fx65
+    // instruction fx65
     void ldVxI(const uint8_t x);
 
     void execute(const Instruction i);

@@ -26,7 +26,7 @@ g++ --std=c++20 \
 -Wlogical-op \
 -Wvla \
 -Wno-unknown-pragmas \
-./src/chip8.cpp \
+./src/chip8_emulator/chip8.cpp \
 ./tests/test.cpp \
 -o bin/chip8.bin
 
