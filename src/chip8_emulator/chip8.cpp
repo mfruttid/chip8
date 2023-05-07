@@ -33,12 +33,14 @@ Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
     }
 }
 
+// instruction of draw with wrapping sprites
+/*
 bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
 {
     bool res = false;
     size_t s = a.size();
     assert(x<64 && y<32 && s<16);
-    for (size_t i=0; i<s; ++i)
+    for (size_t i=0; i<32; ++i)
     {
         int k = (y + i) % 32;
         for (int j=7; j>=0; --j)
@@ -50,6 +52,30 @@ bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
             if (!res)
             {
                 res = r && (d[k][l].status == Chip8::Chip8::Status::off);
+            }
+        }
+    }
+    return res;
+}
+*/
+
+bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
+{
+    bool res = false;
+    size_t s = a.size();
+    assert(x<64 && y<32 && s<16);
+    for (int i=0; i<32-y; ++i)
+    {
+        int k = y + i;
+        int m = std::min(63, x+7);
+        for (int j=x; j<=m; ++j)
+        {
+            bool r = (d[k][j].status == Chip8::Chip8::Status::on);
+            d[k][j] = d[k][j] ^ static_cast<uint8_t>(a[i] & 0x80); //0x80 = 1000'0000 in binary
+            a[i] = static_cast<uint8_t>(a[i] << 1u);
+            if (!res)
+            {
+                res = r && (d[k][j].status == Chip8::Chip8::Status::off);
             }
         }
     }

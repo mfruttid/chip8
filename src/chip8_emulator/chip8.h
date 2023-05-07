@@ -14,34 +14,6 @@ namespace Chip8{
 class Chip8;
 }
 
-namespace Chip8_internals {
-
-
-
-    /*template<uint8_t n>
-        requires (n > 0) && (n < 16)
-    class Sprite {
-    public:
-        Sprite() : sprite { std::array<std::array<Pixel, 8>, n>() } {}
-        Sprite(std::array< uint8_t, n> a) : sprite { std::array<std::array<Pixel, 8>, n>() }
-        {
-            for (int i : std::ranges::iota_view{0,n})
-            {
-                uint8_t u = a[i];
-                for (int j=0; j<8; ++j)
-                {
-                    if (u & 1 == 1)
-                    {
-                        sprite[i][j] = Pixel(Status::on);
-                    }
-                    u >> 1u;
-                }
-            }
-        }
-    private:
-        std::array<std::array<Pixel, 8>, n> sprite;
-    };*/
-}
 
 namespace Chip8 {
     class Chip8 {
