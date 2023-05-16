@@ -1,6 +1,10 @@
 #include "chip8.h"
+#include "../display/display.h"
 #include <cassert>
 #include <span>
+#include <thread>
+#include <functional>
+
 
 std::string Chip8::Chip8::Register::toString() const
 {
@@ -23,13 +27,27 @@ const Chip8::Chip8::Address Chip8::Chip8::top_stack() const
 
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {
-    if (int(status) ^ u)
+    if (status == Chip8::Chip8::Status::off)
     {
-        return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
+        if (0 ^ u)
+        {
+            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
+        }
+        else
+        {
+            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
+        }
     }
     else
     {
-        return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
+        if (1 ^ u)
+        {
+            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
+        }
+        else
+        {
+            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
+        }
     }
 }
 
@@ -59,15 +77,17 @@ bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
 }
 */
 
-bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
+bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y)
 {
     bool res = false;
     size_t s = a.size();
     assert(x<64 && y<32 && s<16);
-    for (int i=0; i<32-y; ++i)
+    int m = std::min(63, x+7);
+    int n = std::min(32-y, static_cast<int>(s));
+
+    for (int i=0; i<n; ++i)
     {
         int k = y + i;
-        int m = std::min(63, x+7);
         for (int j=x; j<=m; ++j)
         {
             bool r = (d[k][j].status == Chip8::Chip8::Status::on);
@@ -290,14 +310,16 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     uint8_t x = (xyn & 0xf00) >> 8u;
     uint8_t y = (xyn & 0xf0) >> 4u;
     uint8_t n = static_cast<uint8_t>(xyn & 0xf);
-    uint8_t coord_x = (registers[x].reg) % 64;
+    uint8_t coord_x = static_cast<uint8_t>(registers[x].reg % 64);
     uint8_t coord_y = (registers[y].reg) % 32;
     std::vector<uint8_t> a;
-    for (int i=0; i<n; ++i)
+    for (int i=I; i<I+n; ++i)
     {
         a.emplace_back(ram[i]);
     }
-    bool set = display.drw(a, coord_x, coord_y);
+    std::unique_lock lck {display_mutex};
+    bool set = display.drw(std::move(a), coord_x, coord_y);
+    lck.unlock();
     if (set)
     {
         registers[0xf].update(1);
@@ -374,11 +396,36 @@ std::vector<Chip8::Chip8::Instruction> Chip8::Chip8::readFromFile(const std::fil
 
 void Chip8::Chip8::run(const std::vector<Chip8::Chip8::Instruction> instructions)
     {
+        std::promise<bool> promise_display_initialized;
+        std::future<bool> future_display_initialized = promise_display_initialized.get_future();
+
+        std::promise<bool> promise_display_done;
+        std::future<bool> future_display_done = promise_display_done.get_future();
+
+        std::thread display_thread {show, std::ref(*this), std::ref(promise_display_initialized), std::ref(promise_display_done)};
+        display_thread.detach();
+
+        std::unique_lock lck{display_mutex};
+        lck.unlock();
+
+        future_display_initialized.wait();
+
         for (Chip8::Chip8::Instruction instruction : instructions)
         {
+            const auto start = std::chrono::high_resolution_clock::now();
+            lck.lock();
             execute(instruction);
+            lck.unlock();
+            const auto end = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> sleep_time = std::chrono::seconds(1/500) - (end - start);
+            std::this_thread::sleep_for(sleep_time);
         }
+
+        end_program = true;
+
+        future_display_done.wait();
     }
+
 
 void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 {

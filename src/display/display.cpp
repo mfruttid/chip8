@@ -1,7 +1,6 @@
-#include "../chip8_emulator/chip8.h"
-#include <SDL2/SDL.h>
+#include "display.h"
 
-SDL_Renderer* from_chip8_to_display(SDL_Renderer* renderer, Chip8::Chip8::Display display)
+void from_chip8_to_display(SDL_Renderer* renderer, const Chip8::Chip8::Display& display)
 {
     for (int i =0; i<32; ++i)
     {
@@ -15,26 +14,10 @@ SDL_Renderer* from_chip8_to_display(SDL_Renderer* renderer, Chip8::Chip8::Displa
             }
         }
     }
-    return renderer;
 }
 
-int main()
+void show(Chip8::Chip8& c, std::promise<bool>& promise_display_initialized, std::promise<bool>& promise_display_done)
 {
-    Chip8::Chip8 c = Chip8::Chip8();
-    c.stack[0] = Chip8::Chip8::Address(1);
-    c.SP = 0;
-    //c.registers[0] = Register(0xf2);
-    //c.registers[1] = Register(0x11);
-    c.ram[0] = 0xF0;
-    c.ram[1] = 0x10;
-    c.ram[2] = 0xf0;
-    c.ram[3] = 0x10;
-    c.ram[4] = 0xf0;
-    c.registers[1].update(0x40);
-    c.registers[6].update(0x10);
-    Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd165));
-    c.execute(i);
-
     SDL_Init(SDL_INIT_EVERYTHING);
 
     SDL_Window* window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 640, SDL_WINDOW_SHOWN );
@@ -43,42 +26,25 @@ int main()
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
 
-    renderer = from_chip8_to_display(renderer, c.display);
-    SDL_Delay(200);
-    SDL_RenderPresent(renderer);
-    SDL_Delay(3000);
+    promise_display_initialized.set_value(true);
 
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-}
+    std::unique_lock lck{c.display_mutex};
+    lck.unlock();
 
-/*
-int main()
-{
-    SDL_Init(SDL_INIT_EVERYTHING);
+    while (!c.end_program)
+    {
+        lck.lock();
+        from_chip8_to_display(renderer, c.display);
+        lck.unlock();
+        SDL_Delay(10);
+        SDL_RenderPresent(renderer);
+    }
 
-    SDL_Window* window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 640, SDL_WINDOW_SHOWN );
-
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
-    SDL_RenderClear(renderer);
-
-    SDL_SetRenderDrawColor(renderer, 0,0,255, 255);
-    SDL_RenderDrawLine(renderer, 5,5, 100,100);
-
-    SDL_Rect rectangle = SDL_Rect(100,60, 200,200);
-    SDL_RenderFillRect(renderer, &rectangle);
-
-    SDL_Delay(200);
-
-    SDL_RenderPresent(renderer);
-
-    SDL_Delay(3000);
-
-    SDL_GetError();
+    SDL_Delay(5000);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
+    promise_display_done.set_value(true);
 }
-*/
+
 

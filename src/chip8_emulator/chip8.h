@@ -9,6 +9,10 @@
 #include <vector>
 #include <random>
 #include <ranges>
+#include <mutex>
+#include <future>
+#include <condition_variable>
+#include <chrono>
 
 namespace Chip8{
 class Chip8;
@@ -93,7 +97,7 @@ namespace Chip8 {
 
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
-            bool drw(auto a, const uint8_t x, const uint8_t y);
+            bool drw(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
 
             std::string toString() const;
 
@@ -111,7 +115,9 @@ namespace Chip8 {
         PC{ Address() },
         SP{ 0 },
         stack{ std::array<Address, 16>() },
-        display{ Display() }  {}
+        display{ Display() },
+        end_program{ false },
+        display_initialized{ false }  {}
 
         // read instructions from file and return a vector with instructions in hexadecimal ints
         std::vector<Instruction> readFromFile(const std::filesystem::path path) const;
@@ -215,6 +221,9 @@ namespace Chip8 {
         uint8_t SP; // 8 bits for pointing to the topmost level of the stack
         std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
         Display display;
+        std::mutex display_mutex;
+        bool end_program;
+        bool display_initialized;
 
         const Address top_stack() const;
     };
