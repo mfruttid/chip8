@@ -59,25 +59,29 @@ bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
 }
 */
 
-bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y)
+bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
-    size_t s = a.size();
-    assert(x<64 && y<32 && s<16);
-    int m = std::min(63, x+7);
-    int n = std::min(32-y, static_cast<int>(s));
+    size_t size = sprite.size();
 
-    for (int i=0; i<n; ++i)
+    assert(x<64 && y<32 && size<16);
+
+    int maxWidth = std::min(63, x+7); // necessary for clipping the sprite if the width exceeds the display
+    int maxHeight = std::min(32-y, static_cast<int>(size)); // necessary for clipping the sprite if the height exceeds the display
+
+    for (int offset = 0; offset < maxHeight; ++offset)
     {
-        int k = y + i;
-        for (int j=x; j<=m; ++j)
+        int row = y + offset;
+        for (int column = x; column <= maxWidth; ++column)
         {
-            bool r = (d[k][j].status == Chip8::Chip8::Status::on);
-            d[k][j] = d[k][j] ^ static_cast<uint8_t>(a[i] & 0x80); //0x80 = 1000'0000 in binary
-            a[i] = static_cast<uint8_t>(a[i] << 1u);
+            bool pixelIsOn = (d[row][column].status == Chip8::Chip8::Status::on);
+
+            d[row][column] = d[row][column] ^ static_cast<uint8_t>(sprite[offset] & 0b1000'0000);
+            sprite[offset] = static_cast<uint8_t>(sprite[offset] << 1u);
+
             if (!res)
             {
-                res = r && (d[k][j].status == Chip8::Chip8::Status::off);
+                res = pixelIsOn && (d[row][column].status == Chip8::Chip8::Status::off);
             }
         }
     }
@@ -162,21 +166,21 @@ void Chip8::Chip8::ld(const uint8_t xy)
     registers[x] = registers[y];
 }
 
-void Chip8::Chip8::bit_or(const uint8_t xy)
+void Chip8::Chip8::bitOr(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
     registers[x]= registers[x] | registers[y];
 }
 
-void Chip8::Chip8::bit_and(const uint8_t xy)
+void Chip8::Chip8::bitAnd(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
     registers[x] = registers[x] & registers[y];
 }
 
-void Chip8::Chip8::bit_xor(const uint8_t xy)
+void Chip8::Chip8::bitXor(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
@@ -287,7 +291,7 @@ void Chip8::Chip8::sne(const uint8_t xy)
     }
 }
 
-void Chip8::Chip8::ld_I(const uint16_t nnn)
+void Chip8::Chip8::ldI(const uint16_t nnn)
 {
     I = nnn;
 }
@@ -318,13 +322,13 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     uint8_t coord_x = static_cast<uint8_t>(registers[x] % 64);
     uint8_t coord_y = (registers[y]) % 32;
 
-    std::vector<uint8_t> a;
+    std::vector<uint8_t> sprite;
     for (int i=I; i<I+n; ++i)
     {
-        a.emplace_back(ram[i]);
+        sprite.emplace_back(ram[i]);
     }
 
-    bool set = display.drw(std::move(a), coord_x, coord_y);
+    bool set = display.drw(std::move(sprite), coord_x, coord_y);
 
     if (set)
     {
@@ -417,7 +421,7 @@ void Chip8::Chip8::run()
     std::promise<bool> promiseDisplayDone;
     std::future<bool> futureDisplayDone = promiseDisplayDone.get_future();
 
-    std::thread displayThread {show, std::ref(*this), std::ref(promiseDisplayInitialized), std::ref(promiseDisplayDone)};
+    std::thread displayThread {showDisplay, std::ref(*this), std::ref(promiseDisplayInitialized), std::ref(promiseDisplayDone)};
     displayThread.detach();
 
     futureDisplayInitialized.wait();
@@ -533,7 +537,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         case 1:
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
-            bit_or(xy);
+            bitOr(xy);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -541,7 +545,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         case 2:
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
-            bit_and(xy);
+            bitAnd(xy);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -549,7 +553,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         case 3:
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
-            bit_xor(xy);
+            bitXor(xy);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -622,7 +626,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     case 0xa:
     {
         uint16_t nnn = inst & 0xfff;
-        ld_I(nnn);
+        ldI(nnn);
         PC = static_cast<Address>(PC + 2);
         break;
     }

@@ -311,13 +311,13 @@ namespace Chip8 {
         void ld(const uint8_t xy);
 
         // instruction 8xy1
-        void bit_or(const uint8_t xy);
+        void bitOr(const uint8_t xy);
 
         // instruction 8xy2
-        void bit_and(const uint8_t xy);
+        void bitAnd(const uint8_t xy);
 
         // instruction 8xy3
-        void bit_xor(const uint8_t xy);
+        void bitXor(const uint8_t xy);
 
         // instruction 8xy4
         void add(const uint8_t xy);
@@ -338,7 +338,7 @@ namespace Chip8 {
         void sne(const uint8_t xy);
 
         // instruction annn
-        void ld_I(const uint16_t nnn);
+        void ldI(const uint16_t nnn);
 
         // instruction bnnn
         void jpV0(const uint16_t nnn);

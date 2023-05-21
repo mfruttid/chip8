@@ -1,6 +1,6 @@
 #include "display.h"
 
-void from_chip8_to_display(SDL_Renderer* renderer, const Chip8::Chip8::Display& display)
+void fromChip8ToDisplay(SDL_Renderer* renderer, const Chip8::Chip8::Display& display)
 {
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
@@ -19,7 +19,7 @@ void from_chip8_to_display(SDL_Renderer* renderer, const Chip8::Chip8::Display& 
     }
 }
 
-void show(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::promise<bool>& promiseDisplayDone)
+void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::promise<bool>& promiseDisplayDone)
 {
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -45,7 +45,7 @@ void show(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::p
         }
 
         lck.lock();
-        from_chip8_to_display(renderer, c.display);
+        fromChip8ToDisplay(renderer, c.display);
         lck.unlock();
 
         SDL_Delay(200);
