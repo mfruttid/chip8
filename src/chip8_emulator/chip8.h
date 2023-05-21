@@ -117,8 +117,9 @@ namespace Chip8 {
         SP{ 0 },
         stack{ std::array<Address, 16>() },
         display{ Display() },
-        end_program{ false },
-        display_initialized{ false }  {}
+        isRunning { false } {}
+        //end_program{ false },
+        //display_initialized{ false }  {}
 
         // read instructions from file and return a vector with instructions in hexadecimal ints
         void readFromFile(const std::filesystem::path path);
@@ -223,7 +224,6 @@ namespace Chip8 {
         std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
         Display display;
         std::mutex display_mutex;
-        bool end_program;
-        bool display_initialized;
+        bool isRunning;
     };
 }

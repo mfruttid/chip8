@@ -392,17 +392,15 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
         while (!file.eof())
         {
             byte1 = static_cast<uint8_t>(file.std::istream::get());
-            //byte1 = static_cast<uint16_t>(byte1 << 8u);
             byte2 = static_cast<uint8_t>(file.std::istream::get());
 
-            //uint16_t i =static_cast<uint16_t>(byte1 | byte2);
             ram[ramAddress] = byte1;
 
             ++ramAddress;
             ram[ramAddress] = byte2;
 
             ++ramAddress;
-            //output.emplace_back(i); // construct Instruction(i) in-place
+
         }
     }
     else
@@ -413,18 +411,20 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
 
 void Chip8::Chip8::run()
 {
-    std::promise<bool> promise_display_initialized;
-    std::future<bool> future_display_initialized = promise_display_initialized.get_future();
+    isRunning = true;
 
-    std::promise<bool> promise_display_done;
-    std::future<bool> future_display_done = promise_display_done.get_future();
+    std::promise<bool> promiseDisplayInitialized;
+    std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();
 
-    std::thread display_thread {show, std::ref(*this), std::ref(promise_display_initialized), std::ref(promise_display_done)};
-    display_thread.detach();
+    std::promise<bool> promiseDisplayDone;
+    std::future<bool> futureDisplayDone = promiseDisplayDone.get_future();
 
-    future_display_initialized.wait();
+    std::thread displayThread {show, std::ref(*this), std::ref(promiseDisplayInitialized), std::ref(promiseDisplayDone)};
+    displayThread.detach();
 
-    while (true)
+    futureDisplayInitialized.wait();
+
+    while (isRunning)
     {
         const auto start = std::chrono::high_resolution_clock::now();
 
@@ -441,9 +441,7 @@ void Chip8::Chip8::run()
         std::this_thread::sleep_for(sleep_time);
     }
 
-    end_program = true;
-
-    future_display_done.wait();
+    futureDisplayDone.wait();
 }
 
 

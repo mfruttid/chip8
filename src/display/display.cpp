@@ -19,7 +19,7 @@ void from_chip8_to_display(SDL_Renderer* renderer, const Chip8::Chip8::Display& 
     }
 }
 
-void show(Chip8::Chip8& c, std::promise<bool>& promise_display_initialized, std::promise<bool>& promise_display_done)
+void show(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::promise<bool>& promiseDisplayDone)
 {
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -27,25 +27,36 @@ void show(Chip8::Chip8& c, std::promise<bool>& promise_display_initialized, std:
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
-    promise_display_initialized.set_value(true);
+    promiseDisplayInitialized.set_value(true);
 
     std::unique_lock lck{c.display_mutex};
     lck.unlock();
 
-    while (!c.end_program)
+    SDL_Event ev;
+
+    while (c.isRunning)
     {
+        while (SDL_PollEvent(&ev) != 0)
+        {
+            if (ev.type == SDL_QUIT)
+            {
+                c.isRunning =  false;
+            }
+        }
+
         lck.lock();
         from_chip8_to_display(renderer, c.display);
         lck.unlock();
+
         SDL_Delay(200);
         SDL_RenderPresent(renderer);
     }
 
-    SDL_Delay(2000);
+    //SDL_Delay(2000);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    promise_display_done.set_value(true);
+    promiseDisplayDone.set_value(true);
 }
 
 
