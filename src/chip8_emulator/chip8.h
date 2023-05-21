@@ -93,7 +93,8 @@ namespace Chip8 {
 
         class Display {
         public:
-            Display() : d{ std::array<std::array<Pixel, 64>, 32>() } {}
+            Display() :
+                d{ std::array<std::array<Pixel, 64>, 32>() } {}
 
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
@@ -112,7 +113,7 @@ namespace Chip8 {
         I{ 0 },
         timer{ Register() },
         sound{ Register() },
-        PC{ Address() },
+        PC{ Address(0x200) },
         SP{ 0 },
         stack{ std::array<Address, 16>() },
         display{ Display() },
@@ -120,16 +121,16 @@ namespace Chip8 {
         display_initialized{ false }  {}
 
         // read instructions from file and return a vector with instructions in hexadecimal ints
-        std::vector<Instruction> readFromFile(const std::filesystem::path path) const;
+        void readFromFile(const std::filesystem::path path);
 
         // runs the instructions
-        void run(const std::vector<Instruction> instructions);
+        void run();
 
         // instruction 00e0
         void cls() { display = Display(); }
 
         // instruction 00ee
-        void ret() { PC = top_stack(); --SP; }
+        void ret() { PC = stack[SP]; --SP; }
 
         // instrucion 1nnn
         void jp(const uint16_t nnn) { PC = nnn; }
@@ -186,7 +187,7 @@ namespace Chip8 {
         void ld_I(const uint16_t nnn);
 
         // instruction bnnn
-        void jp_v0(const uint16_t nnn);
+        void jpV0(const uint16_t nnn);
 
         // instruction cxkk
         void rnd(const uint16_t xkk);
@@ -195,10 +196,10 @@ namespace Chip8 {
         void drw(const uint16_t xyn);
 
         // instruction fx1e
-        void add_I(const uint8_t x);
+        void addI(const uint8_t x);
 
         // instruction fx33
-        void ld_B(const uint8_t x);
+        void ldB(const uint8_t x);
 
         // instruction fx55
         void ldIVx(const uint8_t x);
@@ -224,7 +225,5 @@ namespace Chip8 {
         std::mutex display_mutex;
         bool end_program;
         bool display_initialized;
-
-        const Address top_stack() const;
     };
 }

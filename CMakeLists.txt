@@ -4,6 +4,8 @@ project( Chip8 )
 set( CMAKE_CXX_STANDARD 20 CACHE STRING "" FORCE )
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "" FORCE )
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 set( CMAKE_CXX_FLAGS "-fdiagnostics-show-template-tree ")
 set( CMAKE_CXX_FLAGS_DEBUG "-ggdb -Werror -Wextra -Wall -Wpedantic -Wconversion -Warith-conversion -Wwrite-strings -Warray-bounds=2 -Wcast-align=strict -Wcast-qual -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wformat-overflow=2 -Wnull-dereference -Wimplicit-fallthrough=5 -Wshift-negative-value -Wswitch-default -Wswitch-enum -Wuninitialized -Wfloat-equal -Wshadow -Wlogical-op -Wvla -Wno-unknown-pragmas")

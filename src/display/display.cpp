@@ -2,6 +2,9 @@
 
 void from_chip8_to_display(SDL_Renderer* renderer, const Chip8::Chip8::Display& display)
 {
+    SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
+    SDL_RenderClear(renderer);
+
     for (int i =0; i<32; ++i)
     {
         for (int j=0; j<64; ++j)
@@ -20,11 +23,9 @@ void show(Chip8::Chip8& c, std::promise<bool>& promise_display_initialized, std:
 {
     SDL_Init(SDL_INIT_EVERYTHING);
 
-    SDL_Window* window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 640, SDL_WINDOW_SHOWN );
+    SDL_Window* window = SDL_CreateWindow( "Chip8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 640, SDL_WINDOW_SHOWN );
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
-    SDL_RenderClear(renderer);
 
     promise_display_initialized.set_value(true);
 
@@ -36,11 +37,11 @@ void show(Chip8::Chip8& c, std::promise<bool>& promise_display_initialized, std:
         lck.lock();
         from_chip8_to_display(renderer, c.display);
         lck.unlock();
-        SDL_Delay(10);
+        SDL_Delay(200);
         SDL_RenderPresent(renderer);
     }
 
-    SDL_Delay(5000);
+    SDL_Delay(2000);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

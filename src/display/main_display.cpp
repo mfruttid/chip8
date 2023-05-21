@@ -3,6 +3,11 @@
 int main()
 {
     Chip8::Chip8 c = Chip8::Chip8();
+    c.readFromFile(std::filesystem::path("/home/martina/cpp/chip8/programs/octojam1title.ch8"));
+    c.run();
+
+
+    /*
     c.stack[0] = Chip8::Chip8::Address(1);
     c.SP = 0;
     //c.registers[0] = Register(0xf2);
@@ -12,8 +17,8 @@ int main()
     c.ram[2] = 0xf0;
     c.ram[3] = 0x10;
     c.ram[4] = 0x10;
-    c.registers[1].update(0x82);
-    c.registers[6].update(0x10);
+    c.registers[1].update(0x0);
+    c.registers[6].update(0x0);
     c.registers[3].update(0x57);
     c.registers[7].update(0xd9);
     c.registers[0xa].update(0xa1);
@@ -21,7 +26,7 @@ int main()
     Chip8::Chip8::Instruction j = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd365));
     Chip8::Chip8::Instruction l = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xda75));
     Chip8::Chip8::Instruction k = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd115));
-    c.run(std::vector<Chip8::Chip8::Instruction> {i,k,j,l});
+    c.run(std::vector<Chip8::Chip8::Instruction> {i,j,l,k}); */
 
 
 

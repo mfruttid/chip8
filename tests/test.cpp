@@ -12,9 +12,9 @@ bool check_ret() // prints 2 and 1 (2 is not visible because uint8)
 void check_run()
 {
     Chip8::Chip8 chip8;
-    std::vector<Chip8::Chip8::Instruction> instructions = chip8.readFromFile("/home/martina/cpp/chip8/programs/Breakout [Carmelo Cortez, 1979].ch8");
+    chip8.readFromFile("/home/martina/cpp/chip8/programs/Breakout [Carmelo Cortez, 1979].ch8");
     std::cout << "\n";
-    chip8.run(instructions);
+    chip8.run();
 }
 
 void check_execute() // prints 2 and 1 (2 is not visible because uint8)
