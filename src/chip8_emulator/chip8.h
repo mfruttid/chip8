@@ -20,52 +20,17 @@ class Chip8;
 
 
 namespace Chip8 {
+
     class Chip8 {
+
     public: // to be changed to private in the future
 
-        class Register {
-        public:
-            Register() : reg{ 0 } {}
-            Register(uint8_t u) : reg{ u } {}
-
-            bool operator==(const uint8_t u) const { return reg ==u; }
-
-            bool operator==(const Register r) const { return reg == r.reg; }
-
-            bool operator!=(const uint8_t u) const { return reg != u; }
-
-            void update(const uint8_t u) { reg = u; }
-
-            void operator+=(const uint16_t u) { reg = static_cast<uint8_t>(reg + u); }
-
-            uint16_t operator+(const uint16_t u) { return static_cast<uint16_t>(u + reg); }
-
-            std::string toString() const;
-
-            uint8_t reg; // the usual register has 8 bits
-        };
-
-        class Address {
-        public:
-            Address() : address{ 0 } {}
-            Address(const uint16_t u) : address{ u } {}
-
-            bool isEmpty() const { return address == 0; }
-
-            std::string toString() const;
-
-            bool operator==(Address a) const { return address == a.address; }
-
-            void operator+=(int i) { address = static_cast<uint16_t>(address+i); }
-
-            uint16_t address; // an address consists of 12 bits, so only the rightmost 12 bits are gonna be filled
-        };
+        using Register = uint8_t;
+        using Address = uint16_t;
 
         class Instruction {
         public:
             explicit Instruction(const uint16_t i) : inst{ i } {}
-
-            void operator+=(const uint16_t x) { inst = static_cast<uint16_t>(inst + x); }
 
             uint16_t instruction() const {return inst;}
 
@@ -322,7 +287,7 @@ namespace Chip8 {
         void ret() { PC = stack[SP]; --SP; }
 
         // instrucion 1nnn
-        void jp(const uint16_t nnn) { PC = nnn; }
+        void jp(const uint16_t nnn);
 
         // instruction 2nnn
         void call(const uint16_t nnn);

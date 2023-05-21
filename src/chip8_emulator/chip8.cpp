@@ -6,20 +6,6 @@
 #include <functional>
 
 
-std::string Chip8::Chip8::Register::toString() const
-{
-    std::stringstream stream;
-    stream << "0x" << std::hex << static_cast<uint16_t>(reg);
-    return stream.str();
-}
-
-std::string Chip8::Chip8::Address::toString() const
-{
-    std::stringstream stream;
-    stream << "0x" << std::hex << address;
-    return stream.str();
-}
-
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {
     u = u >> 7u;
@@ -112,6 +98,12 @@ std::string Chip8::Chip8::Display::toString() const
     return res;
 }
 
+void Chip8::Chip8::jp(const uint16_t nnn)
+{
+
+    PC = nnn;
+}
+
 void Chip8::Chip8::call(const uint16_t nnn)
 {
     ++SP;
@@ -125,7 +117,7 @@ void Chip8::Chip8::se(const uint16_t xkk)
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // last 8 bits
     if (registers[x] == kk)
     {
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
     }
 }
 
@@ -135,7 +127,7 @@ void Chip8::Chip8::sne(const uint16_t xkk)
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // last 8 bits
     if (registers[x] != kk)
     {
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
     }
 }
 
@@ -145,7 +137,7 @@ void Chip8::Chip8::se(const uint8_t xy)
     uint8_t y = xy & 0xf;
     if (registers[x] == registers[y])
     {
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
     }
 }
 
@@ -153,42 +145,42 @@ void Chip8::Chip8::ld(const uint16_t xkk)
 {
     uint8_t x = (xkk & 0xf00) >> 8u;
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff);
-    registers[x].update(kk);
+    registers[x] = kk;
 }
 
 void Chip8::Chip8::add(const uint16_t xkk)
 {
     uint8_t x = (xkk & 0xf00) >> 8u;
     uint16_t kk = static_cast<uint16_t>(xkk & 0xff);
-    registers[x] += kk;
+    registers[x] = static_cast<Register>(registers[x] + kk);
 }
 
 void Chip8::Chip8::ld(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
-    registers[x].update(registers[y].reg);
+    registers[x] = registers[y];
 }
 
 void Chip8::Chip8::bit_or(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
-    registers[x].update(registers[x].reg | registers[y].reg);
+    registers[x]= registers[x] | registers[y];
 }
 
 void Chip8::Chip8::bit_and(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
-    registers[x].update(registers[x].reg & registers[y].reg);
+    registers[x] = registers[x] & registers[y];
 }
 
 void Chip8::Chip8::bit_xor(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
-    registers[x].update(registers[x].reg ^ registers[y].reg);
+    registers[x] = registers[x] ^ registers[y];
 }
 
 void Chip8::Chip8::add(const uint8_t xy)
@@ -196,17 +188,17 @@ void Chip8::Chip8::add(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t sumRegisters = static_cast<uint8_t>(registers[x].reg + registers[y].reg);
+    uint8_t sumRegisters = static_cast<uint8_t>(registers[x] + registers[y]);
 
-    registers[x].update(sumRegisters);
+    registers[x] = sumRegisters;
 
-    if (sumRegisters < registers[y].reg)
+    if (sumRegisters < registers[y])
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 }
 
@@ -215,36 +207,36 @@ void Chip8::Chip8::sub(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t val_x = registers[x].reg;
-    uint8_t val_y = registers[y].reg;
+    uint8_t val_x = registers[x];
+    uint8_t val_y = registers[y];
 
     if (val_x > val_y)
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 
-    registers[x].update(static_cast<uint8_t>(val_x - val_y));
+    registers[x] = static_cast<uint8_t>(val_x - val_y);
 }
 
 void Chip8::Chip8::shr(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
-    uint8_t val_x = registers[x].reg;
+    uint8_t val_x = registers[x];
 
     if ((val_x & 1) == 1)
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 
-    registers[x].reg /= 2;
+    registers[x] /= 2;
 }
 
 void Chip8::Chip8::subn(const uint8_t xy)
@@ -252,36 +244,36 @@ void Chip8::Chip8::subn(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t val_x = registers[x].reg;
-    uint8_t val_y = registers[y].reg;
+    uint8_t val_x = registers[x];
+    uint8_t val_y = registers[y];
 
     if (val_y > val_x)
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 
-    registers[x].update(static_cast<uint8_t>(val_y - val_x));
+    registers[x] = static_cast<uint8_t>(val_y - val_x);
 }
 
 void Chip8::Chip8::shl(const uint8_t xy)
 {
     uint8_t x = (xy & 0xf0) >> 4u;
-    uint8_t val_x = registers[x].reg;
+    uint8_t val_x = registers[x];
 
     if ((val_x >> 7u) == 1)
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 
-    registers[x].update(static_cast<uint8_t>(val_x*2));
+    registers[x] = static_cast<uint8_t>(val_x*2);
 }
 
 void Chip8::Chip8::sne(const uint8_t xy)
@@ -291,7 +283,7 @@ void Chip8::Chip8::sne(const uint8_t xy)
 
     if (registers[x] != registers[y])
     {
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
     }
 }
 
@@ -302,7 +294,7 @@ void Chip8::Chip8::ld_I(const uint16_t nnn)
 
 void Chip8::Chip8::jpV0(const uint16_t nnn)
 {
-    PC += registers[0].reg + nnn;
+    PC = static_cast<Address>(registers[0] + nnn);
 }
 
 void Chip8::Chip8::rnd(const uint16_t xkk)
@@ -314,7 +306,7 @@ void Chip8::Chip8::rnd(const uint16_t xkk)
     uint8_t x = (xkk & 0xf00) >> 8u;
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff);
 
-    registers[x].update( randomNumber & kk );
+    registers[x] = randomNumber & kk ;
 }
 
 void Chip8::Chip8::drw(const uint16_t xyn)
@@ -322,39 +314,43 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     uint8_t x = (xyn & 0xf00) >> 8u;
     uint8_t y = (xyn & 0xf0) >> 4u;
     uint8_t n = static_cast<uint8_t>(xyn & 0xf);
-    uint8_t coord_x = static_cast<uint8_t>(registers[x].reg % 64);
-    uint8_t coord_y = (registers[y].reg) % 32;
+
+    uint8_t coord_x = static_cast<uint8_t>(registers[x] % 64);
+    uint8_t coord_y = (registers[y]) % 32;
+
     std::vector<uint8_t> a;
     for (int i=I; i<I+n; ++i)
     {
         a.emplace_back(ram[i]);
     }
+
     bool set = display.drw(std::move(a), coord_x, coord_y);
+
     if (set)
     {
-        registers[0xf].update(1);
+        registers[0xf] = 1;
     }
     else
     {
-        registers[0xf].update(0);
+        registers[0xf] = 0;
     }
 }
 
 void Chip8::Chip8::addI(const uint8_t x)
 {
-    I = registers[x] + I;
+    I = static_cast<Address>(registers[x] + I);
 }
 
 void Chip8::Chip8::ldFVx(const uint8_t x)
 {
-    uint8_t val_x = registers[x].reg;
+    uint8_t val_x = registers[x];
 
     I = static_cast<uint16_t>(val_x * 5);
 }
 
 void Chip8::Chip8::ldB(const uint8_t x)
 {
-    uint8_t val_x = registers[x].reg;
+    uint8_t val_x = registers[x];
     ram[I] = static_cast<uint8_t>(val_x / 100);
 
     val_x = static_cast<uint8_t>(val_x - ram[I] * 100);
@@ -369,7 +365,7 @@ void Chip8::Chip8::ldIVx(const uint8_t x)
     uint16_t J = I;
     for (int i : std::ranges::iota_view(0, x+1))
     {
-        ram[J] = registers[i].reg;
+        ram[J] = registers[i];
         ++J;
     }
 }
@@ -380,7 +376,7 @@ void Chip8::Chip8::ldVxI(const uint8_t x)
 
     for (int i : std::ranges::iota_view(0, x+1))
     {
-        registers[i].update(ram[J]);
+        registers[i] = ram[J];
         ++J;
     }
 }
@@ -393,21 +389,16 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
 
     if (file.is_open())
     {
-        uint8_t byte1, byte2;
+        uint8_t byte1;
         size_t ramAddress = 0x200;
 
         while (!file.eof())
         {
             byte1 = static_cast<uint8_t>(file.std::istream::get());
-            byte2 = static_cast<uint8_t>(file.std::istream::get());
 
             ram[ramAddress] = byte1;
 
             ++ramAddress;
-            ram[ramAddress] = byte2;
-
-            ++ramAddress;
-
         }
     }
     else
@@ -435,10 +426,10 @@ void Chip8::Chip8::run()
     {
         const auto start = std::chrono::high_resolution_clock::now();
 
-        uint16_t byte1 = static_cast<uint16_t>(ram[PC.address]);
+        uint16_t byte1 = static_cast<uint16_t>(ram[PC]);
         byte1 = static_cast<uint16_t>(byte1 << 8u);
 
-        uint16_t byte2 = static_cast<uint16_t>(ram[PC.address+1]);
+        uint16_t byte2 = static_cast<uint16_t>(ram[PC+1]);
         Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
 
         execute(instruction);
@@ -462,7 +453,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 
     case static_cast<uint16_t>(0x00e0):
         cls();
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
 
     default:
@@ -490,7 +481,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xkk = static_cast<uint16_t>(inst & 0xfff);
         se(xkk);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -498,7 +489,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xkk = static_cast<uint16_t>(inst & 0xfff);
         sne(xkk);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -506,7 +497,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint8_t xy0 = static_cast<uint8_t>((inst & 0xff0) >> 4u);
         se(xy0);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -514,7 +505,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xkk = static_cast<uint16_t>(inst & 0xfff);
         ld(xkk);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -522,7 +513,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xkk = static_cast<uint16_t>(inst & 0xfff);
         add(xkk);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -535,7 +526,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             ld(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -543,7 +534,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             bit_or(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -551,7 +542,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             bit_and(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -559,7 +550,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             bit_xor(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -567,7 +558,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             add(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -575,7 +566,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             sub(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -583,7 +574,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             shr(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -591,7 +582,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             subn(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -599,7 +590,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t xy = static_cast<uint8_t>((inst & 0xff0) >> 4u);
             shl(xy);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -618,7 +609,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
             {
                 uint8_t xy =  static_cast<uint8_t>((inst & 0xff0) >> 4u);
                 sne(xy);
-                PC += 2;
+                PC = static_cast<Address>(PC + 2);
                 break;
             }
 
@@ -632,7 +623,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t nnn = inst & 0xfff;
         ld_I(nnn);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -647,7 +638,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xkk = inst & 0xfff;
         rnd(xkk);
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -661,7 +652,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 
         std::this_thread::yield();
 
-        PC += 2;
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 
@@ -674,7 +665,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             addI(x);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -682,7 +673,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldFVx(x);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -690,7 +681,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldB(x);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -698,7 +689,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldIVx(x);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 
@@ -706,7 +697,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldVxI(x);
-            PC += 2;
+            PC = static_cast<Address>(PC + 2);
             break;
         }
 

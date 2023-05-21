@@ -29,16 +29,16 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     c.ram[2] = 0xf0;
     c.ram[3] = 0x10;
     c.ram[4] = 0xf0;
-    c.registers[1].update(0x3e);
-    c.registers[6].update(0x10);
+    c.registers[1] = 0x3e;
+    c.registers[6] = 0x10;
     Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xd165));
     c.execute(i);
-    std::cout << std::hex << c.SP << c.PC.toString() << "\n";
+    std::cout << std::hex << c.SP << c.PC << "\n";
     /*for (size_t j = 0; j <= c.SP; ++j)
     {
         std::cout << c.stack[j].toString() << " ";
     }*/
-    std::cout << c.registers[1].toString() << " " << c.registers[0].toString() << "\n";
+    std::cout << c.registers[1] << " " << c.registers[0] << "\n";
     std::cout << std::hex << c.I << " " << static_cast<uint32_t>(c.ram[0]) << " " << static_cast<uint32_t>(c.ram[1]) << " " << static_cast<uint32_t>(c.ram[2]);
     std::cout << "\n";
     std::cout << c.display.toString();
