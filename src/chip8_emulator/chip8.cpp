@@ -345,6 +345,13 @@ void Chip8::Chip8::addI(const uint8_t x)
     I = registers[x] + I;
 }
 
+void Chip8::Chip8::ldFVx(const uint8_t x)
+{
+    uint8_t val_x = registers[x].reg;
+
+    I = static_cast<uint16_t>(val_x * 5);
+}
+
 void Chip8::Chip8::ldB(const uint8_t x)
 {
     uint8_t val_x = registers[x].reg;
@@ -443,7 +450,6 @@ void Chip8::Chip8::run()
 
     futureDisplayDone.wait();
 }
-
 
 void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 {
@@ -668,6 +674,14 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             addI(x);
+            PC += 2;
+            break;
+        }
+
+        case 0x29:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            ldFVx(x);
             PC += 2;
             break;
         }

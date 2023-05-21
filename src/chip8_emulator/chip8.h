@@ -105,6 +105,181 @@ namespace Chip8 {
             std::array<std::array<Pixel, 64>, 32> d;
         };
 
+        class HexadecimalSprite {
+        public:
+            HexadecimalSprite(uint8_t u) : sprite { std::array<uint8_t, 5>() }
+            {
+                assert((0 <= u) && (u <= 0xf));
+
+                switch (u)
+                {
+                case 0x0:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0x90;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x1:
+                {
+                    sprite[0] = 0x20;
+                    sprite[1] = 0x60;
+                    sprite[2] = 0x20;
+                    sprite[3] = 0x20;
+                    sprite[4] = 0x70;
+                    break;
+                }
+
+                case 0x2:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x10;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x80;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x3:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x10;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x10;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x4:
+                {
+                    sprite[0] = 0x90;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x10;
+                    sprite[4] = 0x10;
+                    break;
+                }
+
+                case 0x5:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x80;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x10;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x6:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x80;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x7:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x10;
+                    sprite[2] = 0x20;
+                    sprite[3] = 0x40;
+                    sprite[4] = 0x40;
+                    break;
+                }
+
+                case 0x8:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0x9:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x10;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0xa:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0x90;
+                    break;
+                }
+
+                case 0xb:
+                {
+                    sprite[0] = 0xe0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0xe0;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0xe0;
+                    break;
+                }
+
+                case 0xc:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x80;
+                    sprite[2] = 0x80;
+                    sprite[3] = 0x80;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0xd:
+                {
+                    sprite[0] = 0xe0;
+                    sprite[1] = 0x90;
+                    sprite[2] = 0x90;
+                    sprite[3] = 0x90;
+                    sprite[4] = 0xe0;
+                    break;
+                }
+
+                case 0xe:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x80;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x80;
+                    sprite[4] = 0xf0;
+                    break;
+                }
+
+                case 0xf:
+                {
+                    sprite[0] = 0xf0;
+                    sprite[1] = 0x80;
+                    sprite[2] = 0xf0;
+                    sprite[3] = 0x80;
+                    sprite[4] = 0x80;
+                    break;
+                }
+
+                default:
+                    break;
+                }
+            }
+
+            std::array<uint8_t, 5> sprite;
+        };
 
     public:
         Chip8() :
@@ -117,7 +292,20 @@ namespace Chip8 {
         SP{ 0 },
         stack{ std::array<Address, 16>() },
         display{ Display() },
-        isRunning { false } {}
+        isRunning { false }
+        {
+            uint8_t ramIndex = 0;
+            for (uint8_t u = 0x0; u <= 0xf; ++u)
+            {
+                HexadecimalSprite hexSprite { u };
+
+                for (uint8_t x : hexSprite.sprite)
+                {
+                    ram[ramIndex] = x;
+                    ++ramIndex;
+                }
+            }
+        }
         //end_program{ false },
         //display_initialized{ false }  {}
 
@@ -198,6 +386,9 @@ namespace Chip8 {
 
         // instruction fx1e
         void addI(const uint8_t x);
+
+        // instruction fx29
+        void ldFVx(const uint8_t x);
 
         // instruction fx33
         void ldB(const uint8_t x);
