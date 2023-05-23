@@ -9,7 +9,6 @@
 
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {
-    u = u >> 7u;
     if (status == Chip8::Chip8::Status::off)
     {
         if (0 ^ u)
@@ -35,31 +34,37 @@ Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 }
 
 // instruction of draw with wrapping sprites
-/*
-bool Chip8::Chip8::Display::drw(auto a, const uint8_t x, const uint8_t y)
+
+bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
-    size_t s = a.size();
-    assert(x<64 && y<32 && s<16);
-    for (size_t i=0; i<32; ++i)
+    size_t size = sprite.size();
+
+    assert(x < 64 && y < 32 && size < 16);
+
+    for (size_t row = 0; row < size; ++row)
     {
-        int k = (y + i) % 32;
-        for (int j=7; j>=0; --j)
+        int rowOffset = (y + row) % 32;
+
+        for (int column = 7; column >= 0; --column)
         {
-            int l = (x + j) % 64;
-            bool r = (d[k][l].status == Chip8::Chip8::Status::on);
-            d[k][l] = d[k][l] ^ static_cast<uint8_t>(a[i] & 1);
-            a[i] = a[i] >> 1u;
+            int columnOffset = (x + column) % 64;
+
+            bool pixelIsOn = (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::on);
+
+            d[rowOffset][columnOffset] = d[rowOffset][columnOffset] ^ static_cast<uint8_t>(sprite[row] & 0b1);
+            sprite[row] = sprite[row] >> 1u;
+
             if (!res)
             {
-                res = r && (d[k][l].status == Chip8::Chip8::Status::off);
+                res = pixelIsOn && (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::off);
             }
         }
     }
     return res;
 }
-*/
 
+/*
 bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
@@ -77,7 +82,7 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
         {
             bool pixelIsOn = (d[row][column].status == Chip8::Chip8::Status::on);
 
-            d[row][column] = d[row][column] ^ static_cast<uint8_t>(sprite[offset] & 0b1000'0000);
+            d[row][column] = d[row][column] ^ static_cast<uint8_t>((sprite[offset] & 0b1000'0000) >> 7u);
             sprite[offset] = static_cast<uint8_t>(sprite[offset] << 1u);
 
             if (!res)
@@ -88,6 +93,7 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
     }
     return res;
 }
+*/
 
 std::string Chip8::Chip8::Display::toString() const
 {
@@ -444,7 +450,7 @@ void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<
         execute(instruction);
 
         const auto end = std::chrono::high_resolution_clock::now();
-        const std::chrono::duration<double, std::milli> sleep_time = std::chrono::seconds(1/500) - (end - start);
+        const std::chrono::duration<double, std::milli> sleep_time = std::chrono::milliseconds(1000/500) - (end - start);
         std::this_thread::sleep_for(sleep_time);
     }
 
@@ -458,12 +464,10 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
     case static_cast<uint16_t>(0x00ee):
         ret();
-        PC = static_cast<Address>(PC + 2);
         break;
 
     case static_cast<uint16_t>(0x00e0):
         cls();
-        PC = static_cast<Address>(PC + 2);
         break;
 
     default:
@@ -734,6 +738,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     }
 
     default:
+        PC = static_cast<Address>(PC + 2);
         break;
     }
 }

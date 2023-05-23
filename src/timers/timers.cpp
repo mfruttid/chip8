@@ -10,7 +10,7 @@ void decreaseDelayTimer(Chip8::Chip8& c)
         --c.delayTimer;
 
         const auto end = std::chrono::high_resolution_clock::now();
-        const std::chrono::duration<double, std::milli> sleep_time = std::chrono::seconds(1/60) - (end - start);
+        const std::chrono::duration<double, std::milli> sleep_time = std::chrono::milliseconds(1000/60) - (end - start);
         std::this_thread::sleep_for(sleep_time);
     }
 }
