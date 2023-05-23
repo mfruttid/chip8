@@ -251,12 +251,13 @@ namespace Chip8 {
         ram{ std::array<uint8_t, 4096>() },
         registers{ std::array<Register, 16>() },
         I{ 0 },
-        timer{ Register() },
-        sound{ Register() },
+        delayTimer{ std::atomic<Register>() },
+        soundTimer{ Register() },
         PC{ Address(0x200) },
         SP{ 0 },
         stack{ std::array<Address, 16>() },
         display{ Display() },
+        displayMutex{ std::mutex() },
         isRunning { false }
         {
             uint8_t ramIndex = 0;
@@ -278,7 +279,7 @@ namespace Chip8 {
         void readFromFile(const std::filesystem::path path);
 
         // runs the instructions
-        void run();
+        void run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone);
 
         // instruction 00e0
         void cls() { display = Display(); }
@@ -349,6 +350,12 @@ namespace Chip8 {
         // instruction dxyn
         void drw(const uint16_t xyn);
 
+        // instruction fx07
+        void ldVxDT(const uint8_t x);
+
+        // instruction fx15
+        void ldDTVx(const uint8_t x);
+
         // instruction fx1e
         void addI(const uint8_t x);
 
@@ -373,13 +380,13 @@ namespace Chip8 {
 
         std::array<Register, 16> registers; // chip-8 has 16 registers of 8 bits
         uint16_t I; // 16-bits register to store memory address
-        Register timer; // 8-bits register for delay
-        Register sound; // 8-bits register for sound
+        std::atomic<Register> delayTimer; // 8-bits register for delay
+        Register soundTimer; // 8-bits register for sound
         Address PC; // program counter
         uint8_t SP; // 8 bits for pointing to the topmost level of the stack
         std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
         Display display;
-        std::mutex display_mutex;
+        std::mutex displayMutex;
         bool isRunning;
     };
 }

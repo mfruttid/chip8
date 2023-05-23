@@ -5,14 +5,15 @@ void fromChip8ToDisplay(SDL_Renderer* renderer, const Chip8::Chip8::Display& dis
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
 
-    for (int i =0; i<32; ++i)
+    SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+
+    for (int row = 0; row < 32; ++row)
     {
-        for (int j=0; j<64; ++j)
+        for (int column=0; column<64; ++column)
         {
-            if (display.d[i][j].status == Chip8::Chip8::Status::on)
+            if (display.d[row][column].status == Chip8::Chip8::Status::on)
             {
-                SDL_Rect rectangle = SDL_Rect(20*j,20*i, 20,20);
-                SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+                SDL_Rect rectangle = SDL_Rect(20*column,20*row, 20,20);
                 SDL_RenderFillRect(renderer, &rectangle);
             }
         }
@@ -29,7 +30,7 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
 
     promiseDisplayInitialized.set_value(true);
 
-    std::unique_lock lck{c.display_mutex};
+    std::unique_lock lck{c.displayMutex};
     lck.unlock();
 
     SDL_Event ev;
@@ -48,11 +49,11 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
         fromChip8ToDisplay(renderer, c.display);
         lck.unlock();
 
-        SDL_Delay(200);
+        std::this_thread::yield();
+
         SDL_RenderPresent(renderer);
     }
 
-    //SDL_Delay(2000);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

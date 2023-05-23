@@ -14,7 +14,7 @@ void check_run()
     Chip8::Chip8 chip8;
     chip8.readFromFile("/home/martina/cpp/chip8/programs/Breakout [Carmelo Cortez, 1979].ch8");
     std::cout << "\n";
-    chip8.run();
+//    chip8.run();
 }
 
 void check_execute() // prints 2 and 1 (2 is not visible because uint8)
@@ -44,8 +44,37 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     std::cout << c.display.toString();
 }
 
+void run(Chip8::Chip8& c)
+{
+    const auto start = std::chrono::high_resolution_clock::now();
+
+    uint16_t byte1 = static_cast<uint16_t>(c.ram[c.PC]);
+    byte1 = static_cast<uint16_t>(byte1 << 8u);
+
+    uint16_t byte2 = static_cast<uint16_t>(c.ram[c.PC+1]);
+    Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
+
+    c.execute(instruction);
+
+    const auto end = std::chrono::high_resolution_clock::now();
+    const std::chrono::duration<double, std::milli> sleep_time = std::chrono::seconds(1/500) - (end - start);
+    std::this_thread::sleep_for(sleep_time);
+}
+
 int main()
 {
-    check_execute();
+    Chip8::Chip8 c {};
+    c.readFromFile(std::filesystem::path("/home/martina/cpp/chip8/programs/octojam1title.ch8"));
+
+    //std::thread(run, std::ref(c));
+
+    std::string stop = "false";
+    while (stop == "false")
+    {
+        std::cout << c.display.toString();
+        std::cin >> stop;
+    }
+
 }
+
 

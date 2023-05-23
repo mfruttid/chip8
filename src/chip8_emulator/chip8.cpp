@@ -1,5 +1,6 @@
 #include "chip8.h"
 #include "../display/display.h"
+#include "../timers/timers.h"
 #include <cassert>
 #include <span>
 #include <thread>
@@ -340,6 +341,19 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     }
 }
 
+void Chip8::Chip8::ldVxDT(const uint8_t x)
+{
+    registers[x] = delayTimer;
+}
+
+void Chip8::Chip8::ldDTVx(const uint8_t x)
+{
+    delayTimer = registers[x];
+
+    std::thread delayTimerThread {decreaseDelayTimer, std::ref(*this)};
+    delayTimerThread.detach();
+}
+
 void Chip8::Chip8::addI(const uint8_t x)
 {
     I = static_cast<Address>(registers[x] + I);
@@ -393,14 +407,14 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
 
     if (file.is_open())
     {
-        uint8_t byte1;
+        uint8_t byte;
         size_t ramAddress = 0x200;
 
         while (!file.eof())
         {
-            byte1 = static_cast<uint8_t>(file.std::istream::get());
+            byte = static_cast<uint8_t>(file.std::istream::get());
 
-            ram[ramAddress] = byte1;
+            ram[ramAddress] = byte;
 
             ++ramAddress;
         }
@@ -411,18 +425,9 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
     }
 }
 
-void Chip8::Chip8::run()
+void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone)
 {
     isRunning = true;
-
-    std::promise<bool> promiseDisplayInitialized;
-    std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();
-
-    std::promise<bool> promiseDisplayDone;
-    std::future<bool> futureDisplayDone = promiseDisplayDone.get_future();
-
-    std::thread displayThread {showDisplay, std::ref(*this), std::ref(promiseDisplayInitialized), std::ref(promiseDisplayDone)};
-    displayThread.detach();
 
     futureDisplayInitialized.wait();
 
@@ -453,6 +458,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
     case static_cast<uint16_t>(0x00ee):
         ret();
+        PC = static_cast<Address>(PC + 2);
         break;
 
     case static_cast<uint16_t>(0x00e0):
@@ -650,7 +656,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
     {
         uint16_t xyn = inst & 0xfff;
 
-        std::unique_lock lck{display_mutex};
+        std::unique_lock lck{displayMutex};
         drw(xyn);
         lck.unlock();
 
@@ -665,6 +671,22 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         uint8_t last2bits = static_cast<uint8_t>(inst & 0xff);
         switch (last2bits)
         {
+        case 0x07:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            ldVxDT(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
+        case 0x15:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            ldDTVx(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
         case 0x1e:
         {
             uint8_t x = (inst & 0xf00) >> 8u;
