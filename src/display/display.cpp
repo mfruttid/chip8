@@ -44,7 +44,9 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
 
             case SDL_QUIT:
             {
+                std::unique_lock keyboardMutexLock {c.keyboardMutex};
                 c.isRunning =  false;
+                c.keyIsPressed.notify_one();
                 break;
             }
 
