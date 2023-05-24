@@ -39,9 +39,34 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
     {
         while (SDL_PollEvent(&ev) != 0)
         {
-            if (ev.type == SDL_QUIT)
+            switch (ev.type)
+            {
+
+            case SDL_QUIT:
             {
                 c.isRunning =  false;
+                break;
+            }
+
+            case SDL_KEYDOWN:
+            {
+                std::unique_lock keyboardMutexLock {c.keyboardMutex};
+                c.pressedKey = std::optional<SDL_Keycode>(ev.key.keysym.sym);
+
+                c.keyIsPressed.notify_one();
+                break;
+            }
+
+            case SDL_KEYUP:
+            {
+                std::unique_lock keyboardMutexLock {c.keyboardMutex};
+                c.pressedKey = std::optional<SDL_Keycode>();
+                break;
+            }
+
+            default:
+                break;
+
             }
         }
 

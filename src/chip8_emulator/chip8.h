@@ -13,6 +13,7 @@
 #include <future>
 #include <condition_variable>
 #include <chrono>
+#include <SDL2/SDL.h>
 
 namespace Chip8{
 class Chip8;
@@ -258,7 +259,10 @@ namespace Chip8 {
         stack{ std::array<Address, 16>() },
         display{ Display() },
         displayMutex{ std::mutex() },
-        isRunning { false }
+        isRunning { false },
+        pressedKey { std::optional<SDL_Keycode>() },
+        keyboardMutex { std::mutex() },
+        keyIsPressed { std::condition_variable() }
         {
             uint8_t ramIndex = 0;
             for (uint8_t u = 0x0; u <= 0xf; ++u)
@@ -350,8 +354,17 @@ namespace Chip8 {
         // instruction dxyn
         void drw(const uint16_t xyn);
 
+        // instruction ex9e
+        void skp(const uint8_t x);
+
+        // instruction exa1
+        void sknp(const uint8_t x);
+
         // instruction fx07
         void ldVxDT(const uint8_t x);
+
+        // instruction fx0a
+        void ldVxK(const uint8_t x);
 
         // instruction fx15
         void ldDTVx(const uint8_t x);
@@ -388,5 +401,8 @@ namespace Chip8 {
         Display display;
         std::mutex displayMutex;
         bool isRunning;
+        std::optional<SDL_Keycode> pressedKey;
+        std::mutex keyboardMutex;
+        std::condition_variable keyIsPressed;
     };
 }

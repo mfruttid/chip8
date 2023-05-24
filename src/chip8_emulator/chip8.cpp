@@ -347,9 +347,43 @@ void Chip8::Chip8::drw(const uint16_t xyn)
     }
 }
 
+void Chip8::Chip8::skp(const uint8_t x)
+{
+    if (pressedKey.has_value())
+    {
+        if (static_cast<uint8_t>(pressedKey.value()) == registers[x])
+        {
+            PC = static_cast<Address>(PC + 2);
+        }
+    }
+}
+
+void Chip8::Chip8::sknp(const uint8_t x)
+{
+    if (pressedKey.has_value())
+    {
+        if (static_cast<uint8_t>(pressedKey.value()) != registers[x])
+        {
+            PC = static_cast<Address>(PC + 2);
+        }
+    }
+    else
+    {
+        PC = static_cast<Address>(PC + 2);
+    }
+}
+
 void Chip8::Chip8::ldVxDT(const uint8_t x)
 {
     registers[x] = delayTimer;
+}
+
+void Chip8::Chip8::ldVxK(const uint8_t x)
+{
+    std::unique_lock keyboardMutexLock {keyboardMutex};
+    keyIsPressed.wait(keyboardMutexLock, [&]{ return pressedKey.has_value(); });
+
+    registers[x] = static_cast<Register>(pressedKey.value());
 }
 
 void Chip8::Chip8::ldDTVx(const uint8_t x)
@@ -670,6 +704,34 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         break;
     }
 
+    case 0xe:
+    {
+        uint8_t last2bits = static_cast<uint8_t>(inst & 0xff);
+        switch (last2bits)
+        {
+        case 0x9e:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            skp(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
+        case 0xa1:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            sknp(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
+        default:
+            break;
+        }
+
+        break;
+    }
+
     case 0xf:
     {
         uint8_t last2bits = static_cast<uint8_t>(inst & 0xff);
@@ -679,6 +741,14 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldVxDT(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
+        case 0x0a:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            ldVxK(x);
             PC = static_cast<Address>(PC + 2);
             break;
         }
