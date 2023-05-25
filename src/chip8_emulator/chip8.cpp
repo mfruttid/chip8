@@ -233,9 +233,9 @@ void Chip8::Chip8::sub(const uint8_t xy)
     registers[x] = static_cast<uint8_t>(val_x - val_y);
 }
 
-void Chip8::Chip8::shr(const uint8_t xy, bool flagChip8)
+void Chip8::Chip8::shr(const uint8_t xy, Chip8Type flagChip8)
 {
-    if (flagChip8)
+    if (int(flagChip8))
     {
         uint8_t x = (xy & 0xf0) >> 4u;
         Register val_x = registers[x];
@@ -284,9 +284,9 @@ void Chip8::Chip8::subn(const uint8_t xy)
     registers[x] = static_cast<uint8_t>(val_y - val_x);
 }
 
-void Chip8::Chip8::shl(const uint8_t xy, bool flagChip8)
+void Chip8::Chip8::shl(const uint8_t xy, Chip8Type flagChip8)
 {
-    if (flagChip8)
+    if (int(flagChip8))
     {
         uint8_t x = (xy & 0xf0) >> 4u;
         uint8_t val_x = registers[x];
@@ -377,9 +377,11 @@ void Chip8::Chip8::drw(const uint16_t xyn)
 
 void Chip8::Chip8::skp(const uint8_t x)
 {
-    if (pressedKey.has_value())
+    std::optional<Register> chip8Key { getChip8Key() };
+
+    if (chip8Key.has_value())
     {
-        if (static_cast<uint8_t>(pressedKey.value()) == registers[x])
+        if (chip8Key.value() == registers[x])
         {
             PC = static_cast<Address>(PC + 2);
         }
@@ -388,9 +390,11 @@ void Chip8::Chip8::skp(const uint8_t x)
 
 void Chip8::Chip8::sknp(const uint8_t x)
 {
-    if (pressedKey.has_value())
+    std::optional<Register> chip8Key { getChip8Key() };
+
+    if (chip8Key.has_value())
     {
-        if (static_cast<uint8_t>(pressedKey.value()) != registers[x])
+        if (chip8Key.value() != registers[x])
         {
             PC = static_cast<Address>(PC + 2);
         }
@@ -406,14 +410,94 @@ void Chip8::Chip8::ldVxDT(const uint8_t x)
     registers[x] = delayTimer;
 }
 
+std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
+{
+    if (pressedKey.has_value())
+    {
+        switch (pressedKey.value())
+        {
+        case SDLK_1:
+            return std::optional<Register>(0x0);
+            break;
+
+        case SDLK_2:
+            return std::optional<Register>(0x1);
+            break;
+
+        case SDLK_3:
+            return std::optional<Register>(0x2);
+            break;
+
+        case SDLK_4:
+            return std::optional<Register>(0x3);
+            break;
+
+        case SDLK_q:
+            return std::optional<Register>(0x4);
+            break;
+
+        case SDLK_w:
+            return std::optional<Register>(0x5);
+            break;
+
+        case SDLK_e:
+            return std::optional<Register>(0x6);
+            break;
+
+        case SDLK_r:
+            return std::optional<Register>(0x7);
+            break;
+
+        case SDLK_a:
+            return std::optional<Register>(0x8);
+            break;
+
+        case SDLK_s:
+            return std::optional<Register>(0x9);
+            break;
+
+        case SDLK_d:
+            return std::optional<Register>(0xa);
+            break;
+
+        case SDLK_f:
+            return std::optional<Register>(0xb);
+            break;
+
+        case SDLK_z:
+            return std::optional<Register>(0xc);
+            break;
+
+        case SDLK_x:
+            return std::optional<Register>(0xd);
+            break;
+
+        case SDLK_c:
+            return std::optional<Register>(0xe);
+            break;
+
+        case SDLK_v:
+            return std::optional<Register>(0xf);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    return std::optional<Register>();
+}
+
 void Chip8::Chip8::ldVxK(const uint8_t x)
 {
     std::unique_lock keyboardMutexLock {keyboardMutex};
-    keyIsPressed.wait(keyboardMutexLock, [&]{ return (pressedKey.has_value() | !isRunning); });
+    keyIsPressed.wait(keyboardMutexLock, [&]{ return (getChip8Key().has_value() | !isRunning); });
 
-    if (pressedKey.has_value())
+    if (getChip8Key().has_value())
     {
-        registers[x] = static_cast<Register>(pressedKey.value());
+        Register chip8PressedKey = getChip8Key().value();
+
+        registers[x] = static_cast<Register>(chip8PressedKey);
     }
 }
 
@@ -449,9 +533,9 @@ void Chip8::Chip8::ldB(const uint8_t x)
     ram[I+2] = static_cast<uint8_t>(val_x);
 }
 
-void Chip8::Chip8::ldIVx(const uint8_t x, bool flagChip8)
+void Chip8::Chip8::ldIVx(const uint8_t x, Chip8Type flagChip8)
 {
-    if (flagChip8)
+    if (int(flagChip8))
     {
         uint16_t J = I;
         for (int i : std::ranges::iota_view(0, x+1))
@@ -471,9 +555,9 @@ void Chip8::Chip8::ldIVx(const uint8_t x, bool flagChip8)
 
 }
 
-void Chip8::Chip8::ldVxI(const uint8_t x, bool flagChip8)
+void Chip8::Chip8::ldVxI(const uint8_t x, Chip8Type flagChip8)
 {
-    if (flagChip8)
+    if (int(flagChip8))
     {
         uint16_t J = I;
 
@@ -520,7 +604,7 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
     }
 }
 
-void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone, bool flagChip8)
+void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone, Chip8Type flagChip8)
 {
     isRunning = true;
 
@@ -546,7 +630,7 @@ void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<
     futureDisplayDone.wait();
 }
 
-void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, bool flagChip8)
+void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, Chip8Type flagChip8)
 {
     uint16_t inst = i.instruction();
     switch (inst)
@@ -748,11 +832,6 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, bool flagChip8)
     case 0xd:
     {
         uint16_t xyn = inst & 0xfff;
-
-        if (registers[3] == 13)
-        {
-            std::cout << "found";
-        }
 
         std::unique_lock lck{displayMutex};
         drw(xyn);

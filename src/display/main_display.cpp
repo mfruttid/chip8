@@ -11,7 +11,7 @@ int main()
     std::promise<bool> promiseDisplayDone;
     std::future<bool> futureDisplayDone = promiseDisplayDone.get_future();
 
-    std::thread chip8Thread {&Chip8::Chip8::run, std::ref(c), std::ref(futureDisplayInitialized), std::ref(futureDisplayDone), false};
+    std::thread chip8Thread {&Chip8::Chip8::run, std::ref(c), std::ref(futureDisplayInitialized), std::ref(futureDisplayDone), Chip8::Chip8Type::chip8};
     chip8Thread.detach();
 
     showDisplay(c, promiseDisplayInitialized, promiseDisplayDone);

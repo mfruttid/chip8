@@ -15,12 +15,17 @@
 #include <chrono>
 #include <SDL2/SDL.h>
 
-namespace Chip8{
-class Chip8;
-}
+//namespace Chip8{
+
+//enum class Chip8Type {chip8, schip8};
+
+//class Chip8;
+//}
 
 
 namespace Chip8 {
+
+    enum class Chip8Type {chip8, schip8};
 
     class Chip8 {
 
@@ -284,7 +289,7 @@ namespace Chip8 {
 
         // runs the instructions
         // flagChip8 is 0 if we run the Chip8 instructions and 1 for the SChip8
-        void run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone, bool flagChip8);
+        void run(std::future<bool>& futureDisplayInitialized, std::future<bool>& futureDisplayDone, Chip8Type flagChip8);
 
         // instruction 00e0
         void cls() { display = Display(); }
@@ -332,13 +337,13 @@ namespace Chip8 {
         void sub(const uint8_t xy);
 
         // instruction 8xy6
-        void shr(const uint8_t xy, bool flagChip8);
+        void shr(const uint8_t xy, Chip8Type flagChip8);
 
         // instruction 8xy7
         void subn(const uint8_t xy);
 
         // instruction 8xye
-        void shl(const uint8_t xy, bool flagChip8);
+        void shl(const uint8_t xy, Chip8Type flagChip8);
 
         // instruction 9xy0
         void sne(const uint8_t xy);
@@ -380,12 +385,14 @@ namespace Chip8 {
         void ldB(const uint8_t x);
 
         // instruction fx55
-        void ldIVx(const uint8_t x, bool flagChip8);
+        void ldIVx(const uint8_t x, Chip8Type flagChip8);
 
         // instruction fx65
-        void ldVxI(const uint8_t x, bool flagChip8);
+        void ldVxI(const uint8_t x, Chip8Type flagChip8);
 
-        void execute(const Instruction i, bool flagChip8);
+        void execute(const Instruction i, Chip8Type flagChip8);
+
+        std::optional<Register> getChip8Key() const;
 
 
     //private:

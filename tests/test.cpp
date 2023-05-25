@@ -33,7 +33,7 @@ void check_execute() // prints 2 and 1 (2 is not visible because uint8)
     c.registers[1] = 0x61;
     c.registers[6] = 0x10;
     Chip8::Chip8::Instruction i = Chip8::Chip8::Instruction(static_cast<uint16_t>(0xe19e));
-    c.execute(i,0);
+    c.execute(i,Chip8::Chip8Type::chip8);
     std::cout << std::hex << c.SP << c.PC << "\n";
     /*for (size_t j = 0; j <= c.SP; ++j)
     {
