@@ -44,11 +44,11 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
 
     for (size_t row = 0; row < size; ++row)
     {
-        int rowOffset = (y + row) % 32;
+        size_t rowOffset = (y + row) % 32;
 
         for (int column = 7; column >= 0; --column)
         {
-            int columnOffset = (x + column) % 64;
+            size_t columnOffset = (x + column) % 64;
 
             bool pixelIsOn = (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::on);
 
@@ -414,75 +414,96 @@ std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
 {
     if (pressedKey.has_value())
     {
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wswitch-enum"
+
         switch (pressedKey.value())
         {
-        case SDLK_1:
+        case SDL_SCANCODE_1:
+        {
             return std::optional<Register>(0x0);
-            break;
+        }
 
-        case SDLK_2:
+        case SDL_SCANCODE_2:
+        {
             return std::optional<Register>(0x1);
-            break;
+        }
 
-        case SDLK_3:
+        case SDL_SCANCODE_3:
+        {
             return std::optional<Register>(0x2);
-            break;
+        }
 
-        case SDLK_4:
+        case SDL_SCANCODE_4:
+        {
             return std::optional<Register>(0x3);
-            break;
+        }
 
-        case SDLK_q:
+        case SDL_SCANCODE_Q:
+        {
             return std::optional<Register>(0x4);
-            break;
+        }
 
-        case SDLK_w:
+        case SDL_SCANCODE_W:
+        {
             return std::optional<Register>(0x5);
-            break;
+        }
 
-        case SDLK_e:
+        case SDL_SCANCODE_E:
+        {
             return std::optional<Register>(0x6);
-            break;
+        }
 
-        case SDLK_r:
+        case SDL_SCANCODE_R:
+        {
             return std::optional<Register>(0x7);
-            break;
+        }
 
-        case SDLK_a:
+        case SDL_SCANCODE_A:
+        {
             return std::optional<Register>(0x8);
-            break;
+        }
 
-        case SDLK_s:
+        case SDL_SCANCODE_S:
+        {
             return std::optional<Register>(0x9);
-            break;
+        }
 
-        case SDLK_d:
+        case SDL_SCANCODE_D:
+        {
             return std::optional<Register>(0xa);
-            break;
+        }
 
-        case SDLK_f:
+        case SDL_SCANCODE_F:
+        {
             return std::optional<Register>(0xb);
-            break;
+        }
 
-        case SDLK_z:
+        case SDL_SCANCODE_Z:
+        {
             return std::optional<Register>(0xc);
-            break;
+        }
 
-        case SDLK_x:
+        case SDL_SCANCODE_X:
+        {
             return std::optional<Register>(0xd);
-            break;
+        }
 
-        case SDLK_c:
+        case SDL_SCANCODE_C:
+        {
             return std::optional<Register>(0xe);
-            break;
+        }
 
-        case SDLK_v:
+        case SDL_SCANCODE_V:
+        {
             return std::optional<Register>(0xf);
-            break;
+        }
 
         default:
             break;
         }
+
+        #pragma GCC diagnostic pop
     }
 
     return std::optional<Register>();
@@ -491,7 +512,7 @@ std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
 void Chip8::Chip8::ldVxK(const uint8_t x)
 {
     std::unique_lock keyboardMutexLock {keyboardMutex};
-    keyIsPressed.wait(keyboardMutexLock, [&]{ return (getChip8Key().has_value() | !isRunning); });
+    keyIsPressed.wait(keyboardMutexLock, [&]{ return (getChip8Key().has_value() || !isRunning); });
 
     if (getChip8Key().has_value())
     {
@@ -623,8 +644,10 @@ void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<
         execute(instruction, flagChip8);
 
         const auto end = std::chrono::high_resolution_clock::now();
-        const std::chrono::duration<double, std::milli> sleep_time = std::chrono::milliseconds(1000/500) - (end - start);
+
+        const std::chrono::duration<double, std::milli> sleep_time= std::chrono::milliseconds(2) - (end - start);
         std::this_thread::sleep_for(sleep_time);
+
     }
 
     futureDisplayDone.wait();

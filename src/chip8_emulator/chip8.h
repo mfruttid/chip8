@@ -265,7 +265,7 @@ namespace Chip8 {
         display{ Display() },
         displayMutex{ std::mutex() },
         isRunning { false },
-        pressedKey { std::optional<SDL_Keycode>() },
+        pressedKey { std::optional<SDL_Scancode>() },
         keyboardMutex { std::mutex() },
         keyIsPressed { std::condition_variable() }
         {
@@ -409,7 +409,7 @@ namespace Chip8 {
         Display display;
         std::mutex displayMutex;
         bool isRunning;
-        std::optional<SDL_Keycode> pressedKey;
+        std::optional<SDL_Scancode> pressedKey;
         std::mutex keyboardMutex;
         std::condition_variable keyIsPressed;
     };

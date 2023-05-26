@@ -53,7 +53,7 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
             case SDL_KEYDOWN:
             {
                 std::unique_lock keyboardMutexLock {c.keyboardMutex};
-                c.pressedKey = std::optional<SDL_Keycode>(ev.key.keysym.sym);
+                c.pressedKey = std::optional<SDL_Scancode>(ev.key.keysym.scancode);
 
                 c.keyIsPressed.notify_one();
                 break;
@@ -62,7 +62,7 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
             case SDL_KEYUP:
             {
                 std::unique_lock keyboardMutexLock {c.keyboardMutex};
-                c.pressedKey = std::optional<SDL_Keycode>();
+                c.pressedKey = std::optional<SDL_Scancode>();
                 break;
             }
 
