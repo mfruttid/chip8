@@ -221,6 +221,8 @@ void Chip8::Chip8::sub(const uint8_t xy)
     uint8_t val_x = registers[x];
     uint8_t val_y = registers[y];
 
+    registers[x] = static_cast<uint8_t>(val_x - val_y);
+
     if (val_x > val_y)
     {
         registers[0xf] = 1;
@@ -229,8 +231,6 @@ void Chip8::Chip8::sub(const uint8_t xy)
     {
         registers[0xf] = 0;
     }
-
-    registers[x] = static_cast<uint8_t>(val_x - val_y);
 }
 
 void Chip8::Chip8::shr(const uint8_t xy, Chip8Type flagChip8)
@@ -272,6 +272,8 @@ void Chip8::Chip8::subn(const uint8_t xy)
     uint8_t val_x = registers[x];
     uint8_t val_y = registers[y];
 
+    registers[x] = static_cast<uint8_t>(val_y - val_x);
+
     if (val_y > val_x)
     {
         registers[0xf] = 1;
@@ -280,8 +282,6 @@ void Chip8::Chip8::subn(const uint8_t xy)
     {
         registers[0xf] = 0;
     }
-
-    registers[x] = static_cast<uint8_t>(val_y - val_x);
 }
 
 void Chip8::Chip8::shl(const uint8_t xy, Chip8Type flagChip8)
@@ -421,22 +421,22 @@ std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
         {
         case SDL_SCANCODE_1:
         {
-            return std::optional<Register>(0x0);
+            return std::optional<Register>(0x1);
         }
 
         case SDL_SCANCODE_2:
         {
-            return std::optional<Register>(0x1);
+            return std::optional<Register>(0x2);
         }
 
         case SDL_SCANCODE_3:
         {
-            return std::optional<Register>(0x2);
+            return std::optional<Register>(0x3);
         }
 
         case SDL_SCANCODE_4:
         {
-            return std::optional<Register>(0x3);
+            return std::optional<Register>(0xc);
         }
 
         case SDL_SCANCODE_Q:
@@ -456,42 +456,42 @@ std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
 
         case SDL_SCANCODE_R:
         {
-            return std::optional<Register>(0x7);
+            return std::optional<Register>(0xd);
         }
 
         case SDL_SCANCODE_A:
         {
-            return std::optional<Register>(0x8);
+            return std::optional<Register>(0x7);
         }
 
         case SDL_SCANCODE_S:
         {
-            return std::optional<Register>(0x9);
+            return std::optional<Register>(0x8);
         }
 
         case SDL_SCANCODE_D:
         {
-            return std::optional<Register>(0xa);
+            return std::optional<Register>(0x9);
         }
 
         case SDL_SCANCODE_F:
         {
-            return std::optional<Register>(0xb);
+            return std::optional<Register>(0xe);
         }
 
         case SDL_SCANCODE_Z:
         {
-            return std::optional<Register>(0xc);
+            return std::optional<Register>(0xa);
         }
 
         case SDL_SCANCODE_X:
         {
-            return std::optional<Register>(0xd);
+            return std::optional<Register>(0x0);
         }
 
         case SDL_SCANCODE_C:
         {
-            return std::optional<Register>(0xe);
+            return std::optional<Register>(0xb);
         }
 
         case SDL_SCANCODE_V:
