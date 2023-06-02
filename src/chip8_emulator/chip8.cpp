@@ -33,8 +33,22 @@ Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
     }
 }
 
-// instruction of draw with wrapping sprites
+void Chip8::Chip8::Display::clearPreviousStatus()
+{
+    for (std::array<Pixel, 64> & row : d)
+    {
+        for ( Pixel & pixel : row )
+        {
+            if (pixel.previousStatus > 0 && pixel.status == Status::off)
+            {
+                --pixel.previousStatus;
+            }
+        }
+    }
+}
 
+// instruction of draw with wrapping sprites
+/*
 bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
@@ -50,21 +64,27 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
         {
             size_t columnOffset = (x + column) % 64;
 
-            bool pixelIsOn = (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::on);
+            bool pixelWasOn = (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::on);
 
             d[rowOffset][columnOffset] = d[rowOffset][columnOffset] ^ static_cast<uint8_t>(sprite[row] & 0b1);
             sprite[row] = sprite[row] >> 1u;
 
+            if (pixelWasOn && d[rowOffset][columnOffset].status == Status::off)
+            {
+                d[rowOffset][columnOffset].previousStatus = 2;
+            }
+
             if (!res)
             {
-                res = pixelIsOn && (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::off);
+                res = pixelWasOn && (d[rowOffset][columnOffset].status == Chip8::Chip8::Status::off);
             }
         }
     }
     return res;
 }
+*/
 
-/*
+
 bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
@@ -80,20 +100,25 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
         int row = y + offset;
         for (int column = x; column <= maxWidth; ++column)
         {
-            bool pixelIsOn = (d[row][column].status == Chip8::Chip8::Status::on);
+            bool pixelWasOn = (d[row][column].status == Chip8::Chip8::Status::on);
 
             d[row][column] = d[row][column] ^ static_cast<uint8_t>((sprite[offset] & 0b1000'0000) >> 7u);
             sprite[offset] = static_cast<uint8_t>(sprite[offset] << 1u);
 
+            if (pixelWasOn && d[row][column].status == Status::off)
+            {
+                d[row][column].previousStatus = 500;
+            }
+
             if (!res)
             {
-                res = pixelIsOn && (d[row][column].status == Chip8::Chip8::Status::off);
+                res = pixelWasOn && (d[row][column].status == Chip8::Chip8::Status::off);
             }
         }
     }
     return res;
 }
-*/
+
 
 std::string Chip8::Chip8::Display::toString() const
 {
@@ -338,9 +363,9 @@ void Chip8::Chip8::jpV0(const uint16_t nnn)
 
 void Chip8::Chip8::rnd(const uint16_t xkk)
 {
-    static std::mt19937 generator = std::mt19937();
-    static std::uniform_int_distribution<> distrib(0, 255);
-    uint8_t randomNumber = static_cast<uint8_t>(distrib(generator));
+    static std::mt19937 generator { std::random_device{}() };
+    static std::uniform_int_distribution<> distribution(0, 255);
+    uint8_t randomNumber = static_cast<uint8_t>(distribution(generator));
 
     uint8_t x = (xkk & 0xf00) >> 8u;
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff);
@@ -530,6 +555,14 @@ void Chip8::Chip8::ldDTVx(const uint8_t x)
     delayTimerThread.detach();
 }
 
+void Chip8::Chip8::ldSTVx(const uint8_t x)
+{
+    soundTimer = registers[x];
+
+    std::thread soundTimerThread {decreaseSoundTimer, std::ref(*this)};
+    soundTimerThread.detach();
+}
+
 void Chip8::Chip8::addI(const uint8_t x)
 {
     I = static_cast<Address>(registers[x] + I);
@@ -631,21 +664,35 @@ void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized, std::future<
 
     futureDisplayInitialized.wait();
 
+    //int count {0};
+
     while (isRunning)
     {
         const auto start = std::chrono::high_resolution_clock::now();
 
-        uint16_t byte1 = static_cast<uint16_t>(ram[PC]);
-        byte1 = static_cast<uint16_t>(byte1 << 8u);
+        for (int numInstructions = 0; numInstructions < 10; ++numInstructions)
+        {
+            uint16_t byte1 = static_cast<uint16_t>(ram[PC]);
+            byte1 = static_cast<uint16_t>(byte1 << 8u);
 
-        uint16_t byte2 = static_cast<uint16_t>(ram[PC+1]);
-        Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
+            uint16_t byte2 = static_cast<uint16_t>(ram[PC+1]);
+            Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
 
-        execute(instruction, flagChip8);
+            execute(instruction, flagChip8);
+
+            //++count;
+
+            //if (count > 500)
+            //{
+                //std::this_thread::sleep_for(std::chrono::duration<double, std::deci>(1));
+            //}
+
+        }
 
         const auto end = std::chrono::high_resolution_clock::now();
 
-        const std::chrono::duration<double, std::milli> sleep_time= std::chrono::milliseconds(2) - (end - start);
+        const std::chrono::duration<double, std::milli> sleep_time
+                = std::chrono::milliseconds(20) - (end - start); // 2 milliseconds per instruction
         std::this_thread::sleep_for(sleep_time);
 
     }

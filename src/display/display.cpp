@@ -1,19 +1,53 @@
 #include "display.h"
 
-void fromChip8ToDisplay(SDL_Renderer* renderer, const Chip8::Chip8::Display& display)
+// copied from https://github.com/Grieverheart/sdl_tone_generator/blob/main/main.cpp
+void audio_callback(void* userdata, uint8_t* stream, int len)
 {
+    uint64_t* samples_played = (uint64_t*)userdata;
+
+    float f = static_cast<float>(*stream);
+    float* fstream = &f;
+
+    static const double volume = 0.2;
+    static const double frequency = 200.0;
+
+    for(int sid = 0; sid < (len / 8); ++sid)
+    {
+        double time = static_cast<double>((*samples_played + sid) / 44100);
+        double x = static_cast<double>(2.0 * M_PI * time * frequency);
+        fstream[2 * sid + 0] = static_cast<float>(volume * sin(x)); /* L */
+        fstream[2 * sid + 1] = static_cast<float>(volume * sin(x)); /* R */
+    }
+
+    *samples_played += (len / 8);
+}
+
+void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
+{
+    display.clearPreviousStatus();
+
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
-
-    SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
 
     for (int row = 0; row < 32; ++row)
     {
         for (int column=0; column<64; ++column)
         {
-            if (display.d[row][column].status == Chip8::Chip8::Status::on)
+            Chip8::Chip8::Pixel pixel = display.d[row][column];
+
+            if (pixel.status == Chip8::Chip8::Status::on)
             {
+                SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+
                 SDL_Rect rectangle = SDL_Rect(20*column,20*row, 20,20);
+                SDL_RenderFillRect(renderer, &rectangle);
+            }
+            else if (pixel.previousStatus > 0)
+            {
+                uint8_t colorShade = static_cast<uint8_t>( pixel.previousStatus / 4 );
+                SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
+
+                SDL_Rect rectangle = SDL_Rect( 20*column, 20*row, 20, 20 );
                 SDL_RenderFillRect(renderer, &rectangle);
             }
         }
@@ -34,6 +68,20 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
     lck.unlock();
 
     SDL_Event ev;
+
+    /*
+    uint64_t samples_played = 0;
+
+    SDL_AudioSpec audio_spec_want, audio_spec;
+    SDL_memset(&audio_spec_want, 0, sizeof(audio_spec_want));
+
+    audio_spec_want.freq     = 44100;
+    audio_spec_want.format   = AUDIO_F32;
+    audio_spec_want.channels = 2;
+    audio_spec_want.samples  = 512;
+    audio_spec_want.callback = audio_callback;
+    audio_spec_want.userdata = (void*)&samples_played;
+    */
 
     while (c.isRunning)
     {
@@ -76,9 +124,22 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
         fromChip8ToDisplay(renderer, c.display);
         lck.unlock();
 
-        std::this_thread::yield();
-
         SDL_RenderPresent(renderer);
+
+        /*
+        SDL_AudioDeviceID audio_device_id;
+
+        while (c.soundTimer != 0)
+        {
+            audio_device_id = SDL_OpenAudioDevice(
+            NULL, 0,
+            &audio_spec_want, &audio_spec,
+            SDL_AUDIO_ALLOW_FORMAT_CHANGE );
+        }
+
+        SDL_PauseAudioDevice(audio_device_id, 0);
+        */
+
     }
 
     SDL_DestroyWindow(window);

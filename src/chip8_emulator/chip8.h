@@ -48,8 +48,8 @@ namespace Chip8 {
 
         class Pixel {
         public:
-            Pixel() : status{ Status::off } { }
-            Pixel(Status s) : status{ s } { }
+            Pixel() : status{ Status::off }, previousStatus{ 0 } { }
+            Pixel(Status s) : status{ s }, previousStatus{ 0 } { }
 
             Pixel operator^(uint8_t u) const;
 
@@ -60,12 +60,15 @@ namespace Chip8 {
             }
 
             Status status;
+            int32_t previousStatus;
         };
 
         class Display {
         public:
             Display() :
                 d{ std::array<std::array<Pixel, 64>, 32>() } {}
+
+            void clearPreviousStatus();
 
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
@@ -258,7 +261,7 @@ namespace Chip8 {
         registers{ std::array<Register, 16>() },
         I{ 0 },
         delayTimer{ std::atomic<Register>() },
-        soundTimer{ Register() },
+        soundTimer{ std::atomic<Register>() },
         PC{ Address(0x200) },
         SP{ 0 },
         stack{ std::array<Address, 16>() },
@@ -375,6 +378,9 @@ namespace Chip8 {
         // instruction fx15
         void ldDTVx(const uint8_t x);
 
+        // instruction fx18
+        void ldSTVx(const uint8_t x);
+
         // instruction fx1e
         void addI(const uint8_t x);
 
@@ -402,7 +408,7 @@ namespace Chip8 {
         std::array<Register, 16> registers; // chip-8 has 16 registers of 8 bits
         uint16_t I; // 16-bits register to store memory address
         std::atomic<Register> delayTimer; // 8-bits register for delay
-        Register soundTimer; // 8-bits register for sound
+        std::atomic<Register> soundTimer; // 8-bits register for sound
         Address PC; // program counter
         uint8_t SP; // 8 bits for pointing to the topmost level of the stack
         std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
