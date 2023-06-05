@@ -3,7 +3,7 @@
 int main()
 {
     Chip8::Chip8 c = Chip8::Chip8();
-    c.readFromFile(std::filesystem::path("/home/martina/cpp/chip8/programs/superpong.ch8"));
+    c.readFromFile(std::filesystem::path("/home/martina/cpp/chip8/programs/br8kout.ch8"));
 
     std::promise<bool> promiseDisplayInitialized;
     std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();

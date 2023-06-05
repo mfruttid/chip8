@@ -3,6 +3,7 @@ target_sources( main PRIVATE
     "../tests/test.cpp"
     "display/display.cpp"
     "timers/timers.cpp"
+    "sound/sound.cpp"
     )
 
 target_sources( display PRIVATE
@@ -10,4 +11,5 @@ target_sources( display PRIVATE
     "display/display.cpp"
     "display/main_display.cpp"
     "timers/timers.cpp"
+    "sound/sound.cpp"
     )
