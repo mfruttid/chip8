@@ -9,46 +9,29 @@
 
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {
-    if (status == Chip8::Chip8::Status::off)
+    if (int(status) ^ u)
     {
-        if (0 ^ u)
-        {
-            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
-        }
-        else
-        {
-            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
-        }
+        return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on, fadingLevel);
     }
-    else
-    {
-        if (1 ^ u)
-        {
-            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::on);
-        }
-        else
-        {
-            return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off);
-        }
-    }
+    return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off, fadingLevel);
 }
 
-void Chip8::Chip8::Display::clearPreviousStatus()
+void Chip8::Chip8::Display::clearFadingLevel()
 {
     for (std::array<Pixel, 64> & row : d)
     {
         for ( Pixel & pixel : row )
         {
-            if (pixel.previousStatus > 0 && pixel.status == Status::off)
+            if (pixel.fadingLevel > 0 && pixel.status == Status::off)
             {
-                --pixel.previousStatus;
+                --pixel.fadingLevel;
             }
         }
     }
 }
 
 // instruction of draw with wrapping sprites
-/*
+
 bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
@@ -69,9 +52,9 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
             d[rowOffset][columnOffset] = d[rowOffset][columnOffset] ^ static_cast<uint8_t>(sprite[row] & 0b1);
             sprite[row] = sprite[row] >> 1u;
 
-            if (pixelWasOn && d[rowOffset][columnOffset].status == Status::off)
+            if (pixelWasOn)
             {
-                d[rowOffset][columnOffset].previousStatus = 2;
+                d[rowOffset][columnOffset].fadingLevel = 500;
             }
 
             if (!res)
@@ -82,9 +65,10 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
     }
     return res;
 }
-*/
 
 
+// instruction of draw with clipping sprites
+/*
 bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
@@ -107,7 +91,7 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
 
             if (pixelWasOn && d[row][column].status == Status::off)
             {
-                d[row][column].previousStatus = 500;
+                d[row][column].fadingLevel = 500;
             }
 
             if (!res)
@@ -118,7 +102,7 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
     }
     return res;
 }
-
+*/
 
 std::string Chip8::Chip8::Display::toString() const
 {

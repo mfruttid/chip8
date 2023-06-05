@@ -24,7 +24,7 @@ void audio_callback(void* userdata, uint8_t* stream, int len)
 
 void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
 {
-    display.clearPreviousStatus();
+    display.clearFadingLevel();
 
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
@@ -42,9 +42,9 @@ void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
                 SDL_Rect rectangle = SDL_Rect(20*column,20*row, 20,20);
                 SDL_RenderFillRect(renderer, &rectangle);
             }
-            else if (pixel.previousStatus > 0)
+            else if (pixel.fadingLevel > 0)
             {
-                uint8_t colorShade = static_cast<uint8_t>( pixel.previousStatus / 4 );
+                uint8_t colorShade = static_cast<uint8_t>( pixel.fadingLevel / 4 );
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
 
                 SDL_Rect rectangle = SDL_Rect( 20*column, 20*row, 20, 20 );

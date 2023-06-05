@@ -15,12 +15,6 @@
 #include <chrono>
 #include <SDL2/SDL.h>
 
-//namespace Chip8{
-
-//enum class Chip8Type {chip8, schip8};
-
-//class Chip8;
-//}
 
 
 namespace Chip8 {
@@ -48,8 +42,8 @@ namespace Chip8 {
 
         class Pixel {
         public:
-            Pixel() : status{ Status::off }, previousStatus{ 0 } { }
-            Pixel(Status s) : status{ s }, previousStatus{ 0 } { }
+            Pixel() : status{ Status::off }, fadingLevel{ 0 } { }
+            Pixel(Status s, int32_t fading) : status{ s }, fadingLevel{ fading } { }
 
             Pixel operator^(uint8_t u) const;
 
@@ -60,7 +54,7 @@ namespace Chip8 {
             }
 
             Status status;
-            int32_t previousStatus;
+            int32_t fadingLevel;
         };
 
         class Display {
@@ -68,7 +62,7 @@ namespace Chip8 {
             Display() :
                 d{ std::array<std::array<Pixel, 64>, 32>() } {}
 
-            void clearPreviousStatus();
+            void clearFadingLevel();
 
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
@@ -284,8 +278,7 @@ namespace Chip8 {
                 }
             }
         }
-        //end_program{ false },
-        //display_initialized{ false }  {}
+
 
         // read instructions from file and return a vector with instructions in hexadecimal ints
         void readFromFile(const std::filesystem::path path);
