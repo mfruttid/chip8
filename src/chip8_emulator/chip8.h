@@ -62,7 +62,7 @@ namespace Chip8 {
             Display() :
                 d{ std::array<std::array<Pixel, 64>, 32>() } {}
 
-            void clearFadingLevel();
+            void decreaseFadingLevel();
 
             // takes the vector v and does xor with the pixels at starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise

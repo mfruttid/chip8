@@ -24,7 +24,7 @@ void audio_callback(void* userdata, uint8_t* stream, int len)
 
 void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
 {
-    display.clearFadingLevel();
+    display.decreaseFadingLevel();
 
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);

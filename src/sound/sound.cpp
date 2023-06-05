@@ -30,7 +30,7 @@ Sound::~Sound()
 
 void Sound::playSound()
 {
-    [[maybe_unused]] static int status { SDL_QueueAudio( mDevice, mWaveStart, mWaveLength ) };
+    [[maybe_unused]] int status { SDL_QueueAudio( mDevice, mWaveStart, mWaveLength ) };
     SDL_PauseAudioDevice( mDevice, 0 );
 }
 

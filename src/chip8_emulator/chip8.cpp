@@ -16,7 +16,7 @@ Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
     return Chip8::Chip8::Pixel(Chip8::Chip8::Status::off, fadingLevel);
 }
 
-void Chip8::Chip8::Display::clearFadingLevel()
+void Chip8::Chip8::Display::decreaseFadingLevel()
 {
     for (std::array<Pixel, 64> & row : d)
     {
@@ -950,6 +950,14 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, Chip8Type flagChip
         {
             uint8_t x = (inst & 0xf00) >> 8u;
             ldDTVx(x);
+            PC = static_cast<Address>(PC + 2);
+            break;
+        }
+
+        case 0x18:
+        {
+            uint8_t x = (inst & 0xf00) >> 8u;
+            ldSTVx(x);
             PC = static_cast<Address>(PC + 2);
             break;
         }
