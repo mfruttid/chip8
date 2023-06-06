@@ -1,8 +1,8 @@
-#include "timers.h"
+#include "../chip8/chip8.h"
 #include "../sound/sound.h"
 #include <chrono>
 
-void decreaseTimer(std::atomic<Chip8::Chip8::Register>& timer)
+void Chip8::Chip8::decreaseTimer(std::atomic<Register>& timer)
 {
     while (timer != 0)
     {
@@ -17,17 +17,17 @@ void decreaseTimer(std::atomic<Chip8::Chip8::Register>& timer)
 }
 
 
-void decreaseDelayTimer(Chip8::Chip8& c)
+void Chip8::Chip8::decreaseDelayTimer()
 {
-    decreaseTimer(c.delayTimer);
+    decreaseTimer(delayTimer);
 }
 
-void decreaseSoundTimer(Chip8::Chip8& c)
+void Chip8::Chip8::decreaseSoundTimer()
 {
     static Sound sound { "/home/martina/cpp/chip8/sounds/test.wav" };
     sound.playSound();
 
-    decreaseTimer(c.soundTimer);
+    decreaseTimer(soundTimer);
 
     sound.pauseSound();
 }
