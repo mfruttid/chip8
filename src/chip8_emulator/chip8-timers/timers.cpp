@@ -1,4 +1,4 @@
-#include "../chip8/chip8.h"
+#include "../chip8-core/chip8.h"
 #include "../sound/sound.h"
 #include <chrono>
 

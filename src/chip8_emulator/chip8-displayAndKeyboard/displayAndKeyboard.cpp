@@ -1,4 +1,4 @@
-#include "../chip8_emulator/chip8_emulator.h"
+#include "../chip8_emulator.h"
 
 // sets up the renderer to show the display of the chip8
 void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )

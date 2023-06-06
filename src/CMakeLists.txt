@@ -1,15 +1,15 @@
 target_sources( tests PRIVATE
-    "chip8/chip8.cpp"
+    "chip8_emulator/chip8-core/chip8.cpp"
     "../tests/test.cpp"
-    "displayAndKeyboard/displayAndKeyboard.cpp"
-    "timers/timers.cpp"
-    "sound/sound.cpp"
+    "chip8_emulator/chip8-displayAndKeyboard/displayAndKeyboard.cpp"
+    "chip8_emulator/chip8-timers/timers.cpp"
+    "chip8_emulator/sound/sound.cpp"
     )
 
 target_sources( main PRIVATE
-    "chip8/chip8.cpp"
-    "displayAndKeyboard/displayAndKeyboard.cpp"
+    "chip8_emulator/chip8-core/chip8.cpp"
+    "chip8_emulator/chip8-displayAndKeyboard/displayAndKeyboard.cpp"
     "main.cpp"
-    "timers/timers.cpp"
-    "sound/sound.cpp"
+    "chip8_emulator/chip8-timers/timers.cpp"
+    "chip8_emulator/sound/sound.cpp"
     )
