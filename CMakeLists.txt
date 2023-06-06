@@ -29,11 +29,11 @@ set( CMAKE_CXX_FLAGS_DEBUG "-ggdb -Werror -Wextra -Wall -Wpedantic -Wconversion 
 set( CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 
+add_executable( tests )
+set_target_properties( tests PROPERTIES OUTPUT_NAME tests.bin )
+
 add_executable( main )
 set_target_properties( main PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME} )
-
-add_executable( display )
-set_target_properties( display PROPERTIES OUTPUT_NAME display.bin )
 
 add_subdirectory( "src" )
 add_subdirectory( "external" )

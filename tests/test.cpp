@@ -1,5 +1,5 @@
 #include "../src/chip8_emulator/chip8.h"
-# include "../src/display/display.h"
+# include "../src/displayAndKeyboard/displayAndKeyboard.h"
 
 bool check_ret() // prints 2 and 1 (2 is not visible because uint8)
 {

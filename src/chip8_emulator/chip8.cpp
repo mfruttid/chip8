@@ -1,11 +1,6 @@
 #include "chip8.h"
-#include "../display/display.h"
+#include "../displayAndKeyboard/displayAndKeyboard.h"
 #include "../timers/timers.h"
-#include <cassert>
-#include <span>
-#include <thread>
-#include <functional>
-
 
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^(uint8_t u) const
 {

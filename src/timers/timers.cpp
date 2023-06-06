@@ -1,6 +1,6 @@
 #include "timers.h"
-#include <chrono>
 #include "../sound/sound.h"
+#include <chrono>
 
 void decreaseTimer(std::atomic<Chip8::Chip8::Register>& timer)
 {

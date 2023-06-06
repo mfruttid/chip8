@@ -14,7 +14,9 @@
 #include <condition_variable>
 #include <chrono>
 #include <SDL2/SDL.h>
-
+#include <span>
+#include <thread>
+#include <functional>
 
 
 namespace Chip8 {

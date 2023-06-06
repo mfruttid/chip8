@@ -1,31 +1,12 @@
-#include "display.h"
+#include "displayAndKeyboard.h"
 
-// copied from https://github.com/Grieverheart/sdl_tone_generator/blob/main/main.cpp
-void audio_callback(void* userdata, uint8_t* stream, int len)
+// sets up the renderer to show the display of the chip8
+void renderDisplay( SDL_Renderer* renderer, Chip8::Chip8::Display& display )
 {
-    uint64_t* samples_played = (uint64_t*)userdata;
-
-    float f = static_cast<float>(*stream);
-    float* fstream = &f;
-
-    static const double volume = 0.2;
-    static const double frequency = 200.0;
-
-    for(int sid = 0; sid < (len / 8); ++sid)
-    {
-        double time = static_cast<double>((*samples_played + sid) / 44100);
-        double x = static_cast<double>(2.0 * M_PI * time * frequency);
-        fstream[2 * sid + 0] = static_cast<float>(volume * sin(x)); /* L */
-        fstream[2 * sid + 1] = static_cast<float>(volume * sin(x)); /* R */
-    }
-
-    *samples_played += (len / 8);
-}
-
-void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
-{
+    // every time we show a new frame, the fading level of the pixels decreases
     display.decreaseFadingLevel();
 
+    // sets the background color to black
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
 
@@ -37,24 +18,29 @@ void fromChip8ToDisplay(SDL_Renderer* renderer, Chip8::Chip8::Display& display)
 
             if (pixel.status == Chip8::Chip8::Status::on)
             {
+                // sets color to white for on pixels
                 SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
 
-                SDL_Rect rectangle = SDL_Rect(20*column,20*row, 20,20);
-                SDL_RenderFillRect(renderer, &rectangle);
+                // every chip8 pixel becomes a square of side 20
+                SDL_Rect pixelRectangle = SDL_Rect(20*column,20*row, 20,20);
+                SDL_RenderFillRect(renderer, & pixelRectangle);
             }
+
             else if (pixel.fadingLevel > 0)
             {
+                // the off pixel gets a color basing on the fading level
                 uint8_t colorShade = static_cast<uint8_t>( pixel.fadingLevel / 4 );
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
 
-                SDL_Rect rectangle = SDL_Rect( 20*column, 20*row, 20, 20 );
-                SDL_RenderFillRect(renderer, &rectangle);
+                SDL_Rect pixelRectangle = SDL_Rect( 20*column, 20*row, 20, 20 );
+                SDL_RenderFillRect(renderer, & pixelRectangle);
             }
         }
     }
 }
 
-void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::promise<bool>& promiseDisplayDone)
+
+void renderAndKeyboard(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized, std::promise<bool>& promiseDisplayDone)
 {
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -68,20 +54,6 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
     lck.unlock();
 
     SDL_Event ev;
-
-    /*
-    uint64_t samples_played = 0;
-
-    SDL_AudioSpec audio_spec_want, audio_spec;
-    SDL_memset(&audio_spec_want, 0, sizeof(audio_spec_want));
-
-    audio_spec_want.freq     = 44100;
-    audio_spec_want.format   = AUDIO_F32;
-    audio_spec_want.channels = 2;
-    audio_spec_want.samples  = 512;
-    audio_spec_want.callback = audio_callback;
-    audio_spec_want.userdata = (void*)&samples_played;
-    */
 
     while (c.isRunning)
     {
@@ -121,25 +93,10 @@ void showDisplay(Chip8::Chip8& c, std::promise<bool>& promiseDisplayInitialized,
         }
 
         lck.lock();
-        fromChip8ToDisplay(renderer, c.display);
+        renderDisplay(renderer, c.display);
         lck.unlock();
 
         SDL_RenderPresent(renderer);
-
-        /*
-        SDL_AudioDeviceID audio_device_id;
-
-        while (c.soundTimer != 0)
-        {
-            audio_device_id = SDL_OpenAudioDevice(
-            NULL, 0,
-            &audio_spec_want, &audio_spec,
-            SDL_AUDIO_ALLOW_FORMAT_CHANGE );
-        }
-
-        SDL_PauseAudioDevice(audio_device_id, 0);
-        */
-
     }
 
     SDL_DestroyWindow(window);
