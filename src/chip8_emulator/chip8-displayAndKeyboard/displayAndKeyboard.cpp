@@ -4,7 +4,7 @@
 void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
 {
     // every time we show a new frame, the fading level of the pixels decreases
-    chip8.display.decreaseFadingLevel();
+    display.decreaseFadingLevel();
 
     // sets the background color to black
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
@@ -14,7 +14,7 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
     {
         for (int column=0; column<64; ++column)
         {
-            Chip8::Chip8::Pixel pixel = chip8.display.frame[row][column];
+            Chip8::Chip8::Pixel pixel = display.frame[row][column];
 
             if (pixel.status == Chip8::Chip8::Status::on)
             {
@@ -29,7 +29,7 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
             else if (pixel.fadingLevel > 0)
             {
                 // the off pixel gets a color basing on the fading level
-                int32_t n = chip8.display.MAXIMALFADING / 125;
+                int32_t n = display.MAXIMALFADING / 125;
                 uint8_t colorShade = static_cast<uint8_t>( pixel.fadingLevel / n );
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
 
@@ -50,25 +50,25 @@ void Chip8Emulator::dealKeyboardOrQuitWindow( SDL_Event ev )
             // if the user closes the window
             case SDL_QUIT:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock {chip8.keyboardOrQuitWindowMutex};
-                chip8.isRunning =  false;
-                chip8.keyIsPressedOrWindowClosed.notify_one();
+                std::unique_lock keyboardOrQuitWindowMutexLock {keyboardOrQuitWindowMutex};
+                isRunning =  false;
+                keyIsPressedOrWindowClosed.notify_one();
                 break;
             }
 
             case SDL_KEYDOWN:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock { chip8.keyboardOrQuitWindowMutex };
-                chip8.pressedKey = std::optional<SDL_Scancode>( ev.key.keysym.scancode );
+                std::unique_lock keyboardOrQuitWindowMutexLock { keyboardOrQuitWindowMutex };
+                pressedKey = std::optional<SDL_Scancode>( ev.key.keysym.scancode );
 
-                chip8.keyIsPressedOrWindowClosed.notify_one();
+                keyIsPressedOrWindowClosed.notify_one();
                 break;
             }
 
             case SDL_KEYUP:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock { chip8.keyboardOrQuitWindowMutex };
-                chip8.pressedKey = std::optional<SDL_Scancode>();
+                std::unique_lock keyboardOrQuitWindowMutexLock { keyboardOrQuitWindowMutex };
+                pressedKey = std::optional<SDL_Scancode>();
                 break;
             }
 
@@ -93,12 +93,12 @@ void Chip8Emulator::renderAndKeyboard( std::promise<bool>& promiseDisplayInitial
 
     promiseDisplayInitialized.set_value(true);
 
-    std::unique_lock displayLock {chip8.displayMutex};
+    std::unique_lock displayLock { displayMutex };
     displayLock.unlock();
 
     SDL_Event ev;
 
-    while (chip8.isRunning)
+    while ( isRunning )
     {
         dealKeyboardOrQuitWindow(ev);
 

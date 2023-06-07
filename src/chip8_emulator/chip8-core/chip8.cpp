@@ -25,7 +25,7 @@ void Chip8::Chip8::Display::decreaseFadingLevel()
 }
 
 // instruction of draw with wrapping sprites
-bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
+bool Chip8::Chip8::Display::drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
     size_t size = sprite.size();
@@ -61,8 +61,8 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
 
 
 // instruction of draw with clipping sprites
-/*
-bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
+
+bool Chip8::Chip8::Display::drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
     size_t size = sprite.size();
@@ -95,7 +95,6 @@ bool Chip8::Chip8::Display::drw(std::vector<uint8_t>&& sprite, const uint8_t x, 
     }
     return res;
 }
-*/
 
 
 void Chip8::Chip8::readFromFile(const std::filesystem::path path)
@@ -124,7 +123,11 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
     }
 }
 
-void Chip8::Chip8::run( std::future<bool>& futureDisplayInitialized, Chip8Type flagChip8 )
+void Chip8::Chip8::run(
+    std::future<bool>& futureDisplayInitialized,
+    Chip8Type flagChip8,
+    DrawInstruction drawInstruction
+    )
 {
     isRunning = true;
 
@@ -146,7 +149,7 @@ void Chip8::Chip8::run( std::future<bool>& futureDisplayInitialized, Chip8Type f
 
             Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
 
-            execute(instruction, flagChip8);
+            execute(instruction, flagChip8, drawInstruction);
         }
 
         const auto end = std::chrono::high_resolution_clock::now();
@@ -158,7 +161,10 @@ void Chip8::Chip8::run( std::future<bool>& futureDisplayInitialized, Chip8Type f
     }
 }
 
-void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, Chip8Type flagChip8)
+void Chip8::Chip8::execute(
+    const Chip8::Chip8::Instruction i,
+    Chip8Type flagChip8,
+    DrawInstruction drawInstruction)
 {
     uint16_t instruction = i.inst;
 
@@ -364,7 +370,7 @@ void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i, Chip8Type flagChip
         uint16_t xyn = instruction & 0xfff;
 
         std::unique_lock lck{displayMutex};
-        drw(xyn);
+        drw(xyn, drawInstruction);
         lck.unlock();
 
         std::this_thread::yield();
@@ -733,7 +739,7 @@ void Chip8::Chip8::rnd(const uint16_t xkk)
     registers[x] = randomNumber & kk ;
 }
 
-void Chip8::Chip8::drw(const uint16_t xyn)
+void Chip8::Chip8::drw(const uint16_t xyn, DrawInstruction drawInstruction)
 {
     uint8_t x = (xyn & 0xf00) >> 8u;
     uint8_t y = (xyn & 0xf0) >> 4u;
@@ -748,7 +754,17 @@ void Chip8::Chip8::drw(const uint16_t xyn)
         sprite.emplace_back(ram[i]);
     }
 
-    bool set = display.drw(std::move(sprite), coord_x, coord_y);
+    bool set;
+
+    if (drawInstruction == DrawInstruction::clip)
+    {
+        set = display.drwClip(std::move(sprite), coord_x, coord_y);
+    }
+
+    else
+    {
+        set = display.drwWrap(std::move(sprite), coord_x, coord_y);
+    }
 
     if (set)
     {

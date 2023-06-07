@@ -21,11 +21,15 @@
 
 namespace Chip8 {
 
-    enum class Chip8Type {chip8, schip8};
-
     class Chip8 {
 
     public:
+
+        enum class Chip8Type { chip8, schip8 };
+
+        enum class DrawInstruction { clip, wrap };
+
+    protected:
 
         using Register = uint8_t;
         static void decreaseTimer( std::atomic<Register>& timer );
@@ -68,7 +72,13 @@ namespace Chip8 {
 
             // takes the vector v and does xor with the pixels starting at coordinate (x,y)
             // returns true if this causes any pixel to be unset and false otherwise
-            bool drw(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+            // clips the pixels over the end of the screen
+            bool drwClip(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+
+            // takes the vector v and does xor with the pixels starting at coordinate (x,y)
+            // returns true if this causes any pixel to be unset and false otherwise
+            // wraps the pixels over the end of the screen
+            bool drwWrap(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
 
             std::array< std::array< Pixel, 64 >, 32 > frame;
             int32_t MAXIMALFADING; // how much fading we want the display to show
@@ -282,13 +292,19 @@ namespace Chip8 {
             }
         }
 
+    protected:
         // read instructions from file and copies them in ram starting at 0x200
         void readFromFile(const std::filesystem::path path);
 
         // runs the instructions after they have been copied to ram
-        void run( std::future<bool>& futureDisplayInitialized, Chip8Type flagChip8 );
+        void run(
+            std::future<bool>& futureDisplayInitialized,
+            Chip8Type flagChip8,
+            DrawInstruction drawInstruction
+            );
 
-        void execute(const Instruction i, Chip8Type flagChip8);
+    private:
+        void execute(const Instruction i, Chip8Type flagChip8, DrawInstruction drawInstruction);
 
         void decreaseDelayTimer();
 
@@ -361,7 +377,7 @@ namespace Chip8 {
         void rnd(const uint16_t xkk);
 
         // instruction dxyn
-        void drw(const uint16_t xyn);
+        void drw(const uint16_t xyn, DrawInstruction drawInstruction);
 
         // instruction ex9e
         void skp(const uint8_t x);
@@ -398,7 +414,8 @@ namespace Chip8 {
 
         std::optional<Register> getChip8Key() const;
 
-    public:
+    protected:
+
         // the ram consists of register 0 to 4095 and each register has 8 bits
         std::array<uint8_t, 4096> ram;
 
