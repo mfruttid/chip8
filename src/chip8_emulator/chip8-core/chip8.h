@@ -17,22 +17,29 @@
 #include <span>
 #include <thread>
 #include <functional>
+#include <cstring>
 
 
 namespace Chip8 {
 
     class Chip8 {
 
-    public:
+    private:
 
+        // some instructions differ and some programs run correctly
+        // with one set of instructions and others with the other
+        // the default one is chip8, but if you specify "schip8"
+        // when you start the program, the set of instructions used changes
         enum class Chip8Type { chip8, schip8 };
 
+        // there are two different versions of the draw instruction dxyn
+        // one of them clips the pixels that are positioned over the end of the display
+        // the other wraps them to the other side of the display
+        // the default setting is clipping, but this can be changed specifying "wrap"
+        // when starting the program
         enum class DrawInstruction { clip, wrap };
 
-    protected:
-
         using Register = uint8_t;
-        static void decreaseTimer( std::atomic<Register>& timer );
 
         using Address = uint16_t;
 
@@ -45,45 +52,7 @@ namespace Chip8 {
 
         };
 
-        enum class Status { off, on };
-
-        class Pixel {
-        public:
-
-            Pixel() : status{ Status::off }, fadingLevel{ 0 } { }
-            Pixel(Status s, int32_t fadinglev) : status{ s }, fadingLevel{ fadinglev } { }
-
-            // xor between pixel and u where u = 0 or 1
-            // keeps the same fading level
-            Pixel operator^(uint8_t u) const;
-
-            Status status;
-            int32_t fadingLevel;
-        };
-
-        class Display {
-        public:
-            Display() :
-                frame{ std::array< std::array< Pixel, 64 >, 32 >() },
-                MAXIMALFADING{ 500 } {}
-
-            // decrease fading level by 1 of each pixel in the frame
-            void decreaseFadingLevel();
-
-            // takes the vector v and does xor with the pixels starting at coordinate (x,y)
-            // returns true if this causes any pixel to be unset and false otherwise
-            // clips the pixels over the end of the screen
-            bool drwClip(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
-
-            // takes the vector v and does xor with the pixels starting at coordinate (x,y)
-            // returns true if this causes any pixel to be unset and false otherwise
-            // wraps the pixels over the end of the screen
-            bool drwWrap(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
-
-            std::array< std::array< Pixel, 64 >, 32 > frame;
-            int32_t MAXIMALFADING; // how much fading we want the display to show
-        };
-
+        // font sprites that represent numbers from 0x0 to 0xf
         class HexadecimalSprite {
         public:
 
@@ -261,22 +230,114 @@ namespace Chip8 {
             std::array<uint8_t, 5> sprite;
         };
 
+    protected:
+
+        enum class Status { off, on };
+
+        class Pixel {
+        public:
+
+            Pixel() : status{ Status::off }, fadingLevel{ 0 } { }
+            Pixel(Status s, int32_t fadinglev) : status{ s }, fadingLevel{ fadinglev } { }
+
+            // xor between pixel and u where u = 0 or 1
+            // keeps the same fading level
+            Pixel operator^(uint8_t u) const;
+
+            // says if a pixel is on or off
+            Status status;
+
+            // if a pixel turns from on to off, it doesn't completely go black,
+            // simulating an old phosphorous CRT-style effect.
+            // The fadingLevel takes care of how much the pixel is faded:
+            // the higher it is, the lighter the color of the pixel
+            int32_t fadingLevel;
+        };
+
+        class Display {
+        public:
+            Display() :
+                frame{ std::array< std::array< Pixel, 64 >, 32 >() },
+                MAXIMALFADING{ 500 } {}
+
+            // decrease fading level by 1 for each pixel in the frame
+            void decreaseFadingLevel();
+
+            // takes the vector v and does xor with the pixels starting at coordinate (x,y)
+            // returns true if this causes any pixel to be unset and false otherwise
+            // clips the pixels over the end of the screen
+            bool drwClip(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+
+            // takes the vector v and does xor with the pixels starting at coordinate (x,y)
+            // returns true if this causes any pixel to be unset and false otherwise
+            // wraps the pixels over the end of the screen
+            bool drwWrap(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+
+            std::array< std::array< Pixel, 64 >, 32 > frame;
+
+            // it's the maximal value the fadingLevel of a pixel can have
+            // The higher the MAXIMALFADING, the longer it will take for a pixel
+            // to go completely black.
+            // It has default value of 500, which results to the display showing
+            // two different tones of grey every time a pixel is turned off
+            int32_t MAXIMALFADING;
+        };
+
+    protected:
+
+        // the ram consists of register 0 to 4095 and each register has 8 bits
+        std::array< Register, 4096 > ram;
+
+        std::array< Register, 16 > registers; // chip-8 has 16 registers of 8 bits
+
+        Address I; // 16-bits register to store memory address
+
+        std::atomic< Register > delayTimer; // 8-bits register for delay
+        std::atomic< Register > soundTimer; // 8-bits register for sound
+
+        Address PC; // program counter
+
+        uint8_t SP; // 8 bits for pointing to the topmost level of the stack
+
+        std::array< Address, 16 > stack; // the stack is an array of 16 16-bits values to store addresses
+
+        Display display;
+        std::mutex displayMutex;
+
+        bool isRunning; // tells when the user closed the window so that the program stops
+
+        std::optional<Register> chip8PressedKey;
+        std::mutex keyboardOrQuitWindowMutex;
+        std::condition_variable keyIsPressedOrWindowClosed;
+
+        // specifies the settings with which we want to run the program
+        Chip8Type chip8Type;
+        DrawInstruction drawInstruction;
+
     public:
-        Chip8() :
-        ram{ std::array<uint8_t, 4096>() },
-        registers{ std::array<Register, 16>() },
-        I{ 0 },
-        delayTimer{ std::atomic<Register>() },
-        soundTimer{ std::atomic<Register>() },
-        PC{ Address(0x200) }, // usually the first 0x200 addresses in ram are not used by the program
-        SP{ 0 },
-        stack{ std::array<Address, 16>() },
-        display{ Display() },
-        displayMutex{ std::mutex() },
-        isRunning { false },
-        pressedKey { std::optional<SDL_Scancode>() },
-        keyboardOrQuitWindowMutex { std::mutex() },
-        keyIsPressedOrWindowClosed { std::condition_variable() }
+
+        Chip8(const char* whichChip8Type, const char* whichDrawInstruction) :
+            ram{ std::array<Register, 4096>() },
+            registers{ std::array<Register, 16>() },
+            I{ 0 },
+            delayTimer{ std::atomic<Register>() },
+            soundTimer{ std::atomic<Register>() },
+            PC{ Address(0x200) }, // usually the first 0x200 addresses in ram are not used by the program
+            SP{ 0 },
+            stack{ std::array<Address, 16>() },
+            display{ Display() },
+            displayMutex{ std::mutex() },
+            isRunning { false },
+            chip8PressedKey { std::optional<Register>() },
+            keyboardOrQuitWindowMutex { std::mutex() },
+            keyIsPressedOrWindowClosed { std::condition_variable() },
+            // if whichChip8Type is "schip8", then we set the chip8Type to be schip8,
+            // otherwise it is chip8
+            chip8Type { (std::strcmp( whichChip8Type, "schip8" ) == 0)? Chip8Type::schip8 : Chip8Type::chip8 },
+            // if whichDrawInstruction is "wrap", then we set drawInstruction to be wrap
+            // otherwise it is clip
+            drawInstruction { (std::strcmp( whichDrawInstruction, "wrap" ) == 0)?  DrawInstruction::wrap
+                                : DrawInstruction::clip }
         {
             // the first addresses of the ram are used for the hexadecimal sprites
             uint8_t ramIndex = 0;
@@ -293,18 +354,16 @@ namespace Chip8 {
         }
 
     protected:
-        // read instructions from file and copies them in ram starting at 0x200
+        // read instructions from file and copies them in ram starting at address 0x200
         void readFromFile(const std::filesystem::path path);
 
-        // runs the instructions after they have been copied to ram
-        void run(
-            std::future<bool>& futureDisplayInitialized,
-            Chip8Type flagChip8,
-            DrawInstruction drawInstruction
-            );
+        // runs the program that has been copied in ram
+        void run( std::future<bool>& futureDisplayInitialized );
 
     private:
-        void execute(const Instruction i, Chip8Type flagChip8, DrawInstruction drawInstruction);
+        void execute(const Instruction i);
+
+        static void decreaseTimer( std::atomic<Register>& timer );
 
         void decreaseDelayTimer();
 
@@ -356,13 +415,13 @@ namespace Chip8 {
         void sub(const uint8_t xy);
 
         // instruction 8xy6
-        void shr(const uint8_t xy, Chip8Type flagChip8);
+        void shr(const uint8_t xy);
 
         // instruction 8xy7
         void subn(const uint8_t xy);
 
         // instruction 8xye
-        void shl(const uint8_t xy, Chip8Type flagChip8);
+        void shl(const uint8_t xy);
 
         // instruction 9xy0
         void sne(const uint8_t xy);
@@ -377,7 +436,7 @@ namespace Chip8 {
         void rnd(const uint16_t xkk);
 
         // instruction dxyn
-        void drw(const uint16_t xyn, DrawInstruction drawInstruction);
+        void drw(const uint16_t xyn);
 
         // instruction ex9e
         void skp(const uint8_t x);
@@ -407,38 +466,9 @@ namespace Chip8 {
         void ldB(const uint8_t x);
 
         // instruction fx55
-        void ldIVx(const uint8_t x, Chip8Type flagChip8);
+        void ldIVx(const uint8_t x);
 
         // instruction fx65
-        void ldVxI(const uint8_t x, Chip8Type flagChip8);
-
-        std::optional<Register> getChip8Key() const;
-
-    protected:
-
-        // the ram consists of register 0 to 4095 and each register has 8 bits
-        std::array<uint8_t, 4096> ram;
-
-        std::array<Register, 16> registers; // chip-8 has 16 registers of 8 bits
-
-        uint16_t I; // 16-bits register to store memory address
-
-        std::atomic<Register> delayTimer; // 8-bits register for delay
-        std::atomic<Register> soundTimer; // 8-bits register for sound
-
-        Address PC; // program counter
-
-        uint8_t SP; // 8 bits for pointing to the topmost level of the stack
-
-        std::array<Address, 16> stack; // the stack is an array of 16 16-bits values to store addresses
-
-        Display display;
-        std::mutex displayMutex;
-
-        bool isRunning; // tells when the user closed the window so that the program stops
-
-        std::optional<SDL_Scancode> pressedKey;
-        std::mutex keyboardOrQuitWindowMutex;
-        std::condition_variable keyIsPressedOrWindowClosed;
+        void ldVxI(const uint8_t x);
     };
 }

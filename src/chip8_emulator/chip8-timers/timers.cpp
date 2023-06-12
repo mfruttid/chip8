@@ -6,6 +6,7 @@ void Chip8::Chip8::decreaseTimer(std::atomic<Register>& timer)
 {
     while (timer != 0)
     {
+        // the timers of the chip8 must decrease at a rate of 60 per second
         const auto start = std::chrono::high_resolution_clock::now();
 
         --timer;
@@ -25,6 +26,7 @@ void Chip8::Chip8::decreaseDelayTimer()
 void Chip8::Chip8::decreaseSoundTimer()
 {
     static Sound sound { "/home/martina/cpp/chip8/sounds/test.wav" };
+
     sound.playSound();
 
     decreaseTimer(soundTimer);

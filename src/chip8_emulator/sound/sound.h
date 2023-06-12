@@ -7,7 +7,8 @@
 class Sound
 {
 public:
-    explicit Sound(std::filesystem::path path);
+    // loads the WAVE file in the path into memory and opens the default audio device
+    explicit Sound( std::filesystem::path path );
 
     ~Sound();
 

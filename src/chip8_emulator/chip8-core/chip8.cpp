@@ -1,8 +1,8 @@
 #include "chip8.h"
 
-
 Chip8::Chip8::Pixel Chip8::Chip8::Pixel::operator^( uint8_t u ) const
 {
+    assert( u == 0 || u == 1 );
     if ( int(status) ^ u )
     {
         return Chip8::Chip8::Pixel( Chip8::Chip8::Status::on, fadingLevel );
@@ -24,12 +24,14 @@ void Chip8::Chip8::Display::decreaseFadingLevel()
     }
 }
 
-// instruction of draw with wrapping sprites
 bool Chip8::Chip8::Display::drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
+
     size_t size = sprite.size();
 
+    // the coordinates (x,y) must represent a point inside the display
+    // and the sprite can be maximum 16 lines long by the chip8 documentation
     assert(x < 64 && y < 32 && size < 16);
 
     for (size_t row = 0; row < size; ++row)
@@ -40,33 +42,35 @@ bool Chip8::Chip8::Display::drwWrap(std::vector<uint8_t>&& sprite, const uint8_t
         {
             size_t columnOffset = (x + column) % 64;
 
-            bool pixelWasOn = (frame[rowOffset][columnOffset].status == Chip8::Chip8::Status::on);
+            Pixel& pixel { frame[rowOffset][columnOffset] };
 
-            frame[rowOffset][columnOffset] = frame[rowOffset][columnOffset] ^ static_cast<uint8_t>(sprite[row] & 0b1);
+            bool pixelWasOn = ( pixel.status == Chip8::Chip8::Status::on );
+
+            pixel = pixel ^ static_cast<uint8_t>(sprite[row] & 0b1);
             sprite[row] = sprite[row] >> 1u;
 
             if (pixelWasOn)
             {
-                frame[rowOffset][columnOffset].fadingLevel = MAXIMALFADING;
+                pixel.fadingLevel = MAXIMALFADING;
             }
 
             if (!res)
             {
-                res = pixelWasOn && (frame[rowOffset][columnOffset].status == Chip8::Chip8::Status::off);
+                res = pixelWasOn && ( pixel.status == Chip8::Chip8::Status::off );
             }
         }
     }
     return res;
 }
 
-
-// instruction of draw with clipping sprites
-
 bool Chip8::Chip8::Display::drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
+
     size_t size = sprite.size();
 
+    // the coordinates (x,y) must represent a point inside the display
+    // and the sprite can be maximum 16 lines long by the chip8 documentation
     assert(x<64 && y<32 && size<16);
 
     int maxWidth = std::min(63, x+7); // necessary for clipping the sprite if the width exceeds the display
@@ -77,19 +81,21 @@ bool Chip8::Chip8::Display::drwClip(std::vector<uint8_t>&& sprite, const uint8_t
         int row = y + offset;
         for (int column = x; column <= maxWidth; ++column)
         {
-            bool pixelWasOn = (frame[row][column].status == Chip8::Chip8::Status::on);
+            Pixel& pixel { frame[row][column] };
 
-            frame[row][column] = frame[row][column] ^ static_cast<uint8_t>((sprite[offset] & 0b1000'0000) >> 7u);
+            bool pixelWasOn = ( pixel.status == Chip8::Chip8::Status::on );
+
+            pixel = pixel ^ static_cast<uint8_t>((sprite[offset] & 0b1000'0000) >> 7u);
             sprite[offset] = static_cast<uint8_t>(sprite[offset] << 1u);
 
-            if (pixelWasOn && frame[row][column].status == Status::off)
+            if (pixelWasOn && pixel.status == Status::off)
             {
-                frame[row][column].fadingLevel = MAXIMALFADING;
+                pixel.fadingLevel = MAXIMALFADING;
             }
 
             if (!res)
             {
-                res = pixelWasOn && (frame[row][column].status == Chip8::Chip8::Status::off);
+                res = pixelWasOn && ( pixel.status == Chip8::Chip8::Status::off );
             }
         }
     }
@@ -101,14 +107,14 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
 {
     assert(exists(path));
 
-    std::ifstream file {path};
+    std::ifstream file { path };
 
-    if (file.is_open())
+    if ( file.is_open() )
     {
         uint8_t byte;
         size_t ramAddress = 0x200;
 
-        while (!file.eof())
+        while ( !file.eof() )
         {
             byte = static_cast<uint8_t>(file.std::istream::get());
 
@@ -123,11 +129,7 @@ void Chip8::Chip8::readFromFile(const std::filesystem::path path)
     }
 }
 
-void Chip8::Chip8::run(
-    std::future<bool>& futureDisplayInitialized,
-    Chip8Type flagChip8,
-    DrawInstruction drawInstruction
-    )
+void Chip8::Chip8::run(std::future<bool>& futureDisplayInitialized)
 {
     isRunning = true;
 
@@ -136,12 +138,13 @@ void Chip8::Chip8::run(
     while (isRunning)
     {
         // chip8 has a clock frequency of 500 Hz
-        // we wait the due amount of time after 10 instructions each time so that
+        // we wait the due amount of time after 10 instructions so that
         // it is more precise
         const auto start = std::chrono::high_resolution_clock::now();
 
         for (int numInstructions = 0; numInstructions < 10; ++numInstructions)
         {
+            // one instruction is given by two bytes each
             uint16_t byte1 = static_cast<uint16_t>(ram[PC]);
             byte1 = static_cast<uint16_t>(byte1 << 8u);
 
@@ -149,7 +152,7 @@ void Chip8::Chip8::run(
 
             Chip8::Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
 
-            execute(instruction, flagChip8, drawInstruction);
+            execute(instruction);
         }
 
         const auto end = std::chrono::high_resolution_clock::now();
@@ -161,10 +164,7 @@ void Chip8::Chip8::run(
     }
 }
 
-void Chip8::Chip8::execute(
-    const Chip8::Chip8::Instruction i,
-    Chip8Type flagChip8,
-    DrawInstruction drawInstruction)
+void Chip8::Chip8::execute(const Chip8::Chip8::Instruction i)
 {
     uint16_t instruction = i.inst;
 
@@ -296,7 +296,7 @@ void Chip8::Chip8::execute(
         case 6:
         {
             uint8_t xy = static_cast<uint8_t>((instruction & 0xff0) >> 4u);
-            shr(xy, flagChip8);
+            shr(xy);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -312,7 +312,7 @@ void Chip8::Chip8::execute(
         case 0xe:
         {
             uint8_t xy = static_cast<uint8_t>((instruction & 0xff0) >> 4u);
-            shl(xy, flagChip8);
+            shl(xy);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -370,7 +370,7 @@ void Chip8::Chip8::execute(
         uint16_t xyn = instruction & 0xfff;
 
         std::unique_lock lck{displayMutex};
-        drw(xyn, drawInstruction);
+        drw(xyn);
         lck.unlock();
 
         std::this_thread::yield();
@@ -471,7 +471,7 @@ void Chip8::Chip8::execute(
         case 0x55:
         {
             uint8_t x = (instruction & 0xf00) >> 8u;
-            ldIVx(x, flagChip8);
+            ldIVx(x);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -479,7 +479,7 @@ void Chip8::Chip8::execute(
         case 0x65:
         {
             uint8_t x = (instruction & 0xf00) >> 8u;
-            ldVxI(x, flagChip8);
+            ldVxI(x);
             PC = static_cast<Address>(PC + 2);
             break;
         }
@@ -502,7 +502,6 @@ void Chip8::Chip8::execute(
 
 void Chip8::Chip8::jp(const uint16_t nnn)
 {
-
     PC = nnn;
 }
 
@@ -510,13 +509,13 @@ void Chip8::Chip8::call(const uint16_t nnn)
 {
     ++SP;
     stack[SP] = PC;
-    PC = Chip8::Chip8::Address(nnn);
+    PC = Address(nnn);
 }
 
 void Chip8::Chip8::se(const uint16_t xkk)
 {
-    uint8_t x = (xkk & 0xf00) >> 8u; // second 4 bits
-    uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // last 8 bits
+    uint8_t x = (xkk & 0xf00) >> 8u; // leftmost 4 bits of xkk
+    uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // rightmost 8 bits of xkk
     if (registers[x] == kk)
     {
         PC = static_cast<Address>(PC + 2);
@@ -525,8 +524,8 @@ void Chip8::Chip8::se(const uint16_t xkk)
 
 void Chip8::Chip8::sne(const uint16_t xkk)
 {
-    uint8_t x = (xkk & 0xf00) >> 8u; // second 4 bits
-    uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // last 8 bits
+    uint8_t x = (xkk & 0xf00) >> 8u; // leftmost 4 bits of xkk
+    uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // rightmost 8 bits of xkk
     if (registers[x] != kk)
     {
         PC = static_cast<Address>(PC + 2);
@@ -553,7 +552,7 @@ void Chip8::Chip8::ld(const uint16_t xkk)
 void Chip8::Chip8::add(const uint16_t xkk)
 {
     uint8_t x = (xkk & 0xf00) >> 8u;
-    uint16_t kk = static_cast<uint16_t>(xkk & 0xff);
+    uint8_t kk = static_cast<uint8_t>(xkk & 0xff);
     registers[x] = static_cast<Register>(registers[x] + kk);
 }
 
@@ -609,10 +608,10 @@ void Chip8::Chip8::sub(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t val_x = registers[x];
-    uint8_t val_y = registers[y];
+    Register val_x = registers[x];
+    Register val_y = registers[y];
 
-    registers[x] = static_cast<uint8_t>(val_x - val_y);
+    registers[x] = static_cast<Register>(val_x - val_y);
 
     if (val_x > val_y)
     {
@@ -624,9 +623,10 @@ void Chip8::Chip8::sub(const uint8_t xy)
     }
 }
 
-void Chip8::Chip8::shr(const uint8_t xy, Chip8Type flagChip8)
+void Chip8::Chip8::shr(const uint8_t xy)
 {
-    if (int(flagChip8))
+    // this instruction differs in chip8 and schip8
+    if (int(chip8Type)) // if chip8Type is schip8
     {
         uint8_t x = (xy & 0xf0) >> 4u;
         Register val_x = registers[x];
@@ -642,7 +642,7 @@ void Chip8::Chip8::shr(const uint8_t xy, Chip8Type flagChip8)
 
         registers[x] /= 2;
     }
-    else
+    else // if chip8Type is chip8
     {
         uint8_t x = (xy & 0xf0) >> 4u;
         uint8_t y = xy & 0xf;
@@ -660,10 +660,10 @@ void Chip8::Chip8::subn(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t val_x = registers[x];
-    uint8_t val_y = registers[y];
+    Register val_x = registers[x];
+    Register val_y = registers[y];
 
-    registers[x] = static_cast<uint8_t>(val_y - val_x);
+    registers[x] = static_cast<Register>(val_y - val_x);
 
     if (val_y > val_x)
     {
@@ -675,12 +675,13 @@ void Chip8::Chip8::subn(const uint8_t xy)
     }
 }
 
-void Chip8::Chip8::shl(const uint8_t xy, Chip8Type flagChip8)
+void Chip8::Chip8::shl(const uint8_t xy)
 {
-    if (int(flagChip8))
+    // this instruction differs in chip8 and schip8
+    if (int(chip8Type)) // if chip8Type is schip8
     {
         uint8_t x = (xy & 0xf0) >> 4u;
-        uint8_t val_x = registers[x];
+        Register val_x = registers[x];
 
         if ((val_x >> 7u) == 1)
         {
@@ -691,9 +692,9 @@ void Chip8::Chip8::shl(const uint8_t xy, Chip8Type flagChip8)
             registers[0xf] = 0;
         }
 
-        registers[x] = static_cast<uint8_t>(val_x*2);
+        registers[x] = static_cast<Register>(val_x*2);
     }
-    else
+    else // if chip8Type is chip8
     {
         uint8_t x = (xy & 0xf0) >> 4u;
         uint8_t y = xy & 0xf;
@@ -729,6 +730,9 @@ void Chip8::Chip8::jpV0(const uint16_t nnn)
 
 void Chip8::Chip8::rnd(const uint16_t xkk)
 {
+    // generator and distribution are static because they are expensive to create
+    // and because otherwise they would generate always the same number,
+    // as we are initializing the generator with the default seed
     static std::mt19937 generator { std::random_device{}() };
     static std::uniform_int_distribution<> distribution(0, 255);
     uint8_t randomNumber = static_cast<uint8_t>(distribution(generator));
@@ -739,14 +743,14 @@ void Chip8::Chip8::rnd(const uint16_t xkk)
     registers[x] = randomNumber & kk ;
 }
 
-void Chip8::Chip8::drw(const uint16_t xyn, DrawInstruction drawInstruction)
+void Chip8::Chip8::drw(const uint16_t xyn)
 {
     uint8_t x = (xyn & 0xf00) >> 8u;
     uint8_t y = (xyn & 0xf0) >> 4u;
-    uint8_t n = static_cast<uint8_t>(xyn & 0xf);
+    uint8_t n = static_cast<uint8_t>(xyn & 0xf); // length of the sprite
 
     uint8_t coord_x = static_cast<uint8_t>(registers[x] % 64);
-    uint8_t coord_y = (registers[y]) % 32;
+    uint8_t coord_y = registers[y] % 32;
 
     std::vector<uint8_t> sprite;
     for (int i=I; i<I+n; ++i)
@@ -754,19 +758,19 @@ void Chip8::Chip8::drw(const uint16_t xyn, DrawInstruction drawInstruction)
         sprite.emplace_back(ram[i]);
     }
 
-    bool set;
+    bool pixelWasUnset;
 
     if (drawInstruction == DrawInstruction::clip)
     {
-        set = display.drwClip(std::move(sprite), coord_x, coord_y);
+        pixelWasUnset = display.drwClip(std::move(sprite), coord_x, coord_y);
     }
 
     else
     {
-        set = display.drwWrap(std::move(sprite), coord_x, coord_y);
+        pixelWasUnset = display.drwWrap(std::move(sprite), coord_x, coord_y);
     }
 
-    if (set)
+    if (pixelWasUnset)
     {
         registers[0xf] = 1;
     }
@@ -778,11 +782,9 @@ void Chip8::Chip8::drw(const uint16_t xyn, DrawInstruction drawInstruction)
 
 void Chip8::Chip8::skp(const uint8_t x)
 {
-    std::optional<Register> chip8Key { getChip8Key() };
-
-    if (chip8Key.has_value())
+    if (chip8PressedKey.has_value())
     {
-        if (chip8Key.value() == registers[x])
+        if (chip8PressedKey.value() == registers[x])
         {
             PC = static_cast<Address>(PC + 2);
         }
@@ -791,11 +793,9 @@ void Chip8::Chip8::skp(const uint8_t x)
 
 void Chip8::Chip8::sknp(const uint8_t x)
 {
-    std::optional<Register> chip8Key { getChip8Key() };
-
-    if (chip8Key.has_value())
+    if (chip8PressedKey.has_value())
     {
-        if (chip8Key.value() != registers[x])
+        if (chip8PressedKey.value() != registers[x])
         {
             PC = static_cast<Address>(PC + 2);
         }
@@ -811,118 +811,18 @@ void Chip8::Chip8::ldVxDT(const uint8_t x)
     registers[x] = delayTimer;
 }
 
-std::optional<Chip8::Chip8::Register> Chip8::Chip8::getChip8Key() const
-{
-    if (pressedKey.has_value())
-    {
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wswitch-enum"
-
-        switch (pressedKey.value())
-        {
-        case SDL_SCANCODE_1:
-        {
-            return std::optional<Register>(0x1);
-        }
-
-        case SDL_SCANCODE_2:
-        {
-            return std::optional<Register>(0x2);
-        }
-
-        case SDL_SCANCODE_3:
-        {
-            return std::optional<Register>(0x3);
-        }
-
-        case SDL_SCANCODE_4:
-        {
-            return std::optional<Register>(0xc);
-        }
-
-        case SDL_SCANCODE_Q:
-        {
-            return std::optional<Register>(0x4);
-        }
-
-        case SDL_SCANCODE_W:
-        {
-            return std::optional<Register>(0x5);
-        }
-
-        case SDL_SCANCODE_E:
-        {
-            return std::optional<Register>(0x6);
-        }
-
-        case SDL_SCANCODE_R:
-        {
-            return std::optional<Register>(0xd);
-        }
-
-        case SDL_SCANCODE_A:
-        {
-            return std::optional<Register>(0x7);
-        }
-
-        case SDL_SCANCODE_S:
-        {
-            return std::optional<Register>(0x8);
-        }
-
-        case SDL_SCANCODE_D:
-        {
-            return std::optional<Register>(0x9);
-        }
-
-        case SDL_SCANCODE_F:
-        {
-            return std::optional<Register>(0xe);
-        }
-
-        case SDL_SCANCODE_Z:
-        {
-            return std::optional<Register>(0xa);
-        }
-
-        case SDL_SCANCODE_X:
-        {
-            return std::optional<Register>(0x0);
-        }
-
-        case SDL_SCANCODE_C:
-        {
-            return std::optional<Register>(0xb);
-        }
-
-        case SDL_SCANCODE_V:
-        {
-            return std::optional<Register>(0xf);
-        }
-
-        default:
-            break;
-        }
-
-        #pragma GCC diagnostic pop
-    }
-
-    return std::optional<Register>();
-}
-
 void Chip8::Chip8::ldVxK(const uint8_t x)
 {
-    std::unique_lock keyboardOrQuitWindowMutexLock {keyboardOrQuitWindowMutex};
+    std::unique_lock keyboardOrQuitWindowMutexLock { keyboardOrQuitWindowMutex };
+    // we wait for the user to either press a valid key or to close the window
     keyIsPressedOrWindowClosed.wait(
         keyboardOrQuitWindowMutexLock,
-        [&]{ return (getChip8Key().has_value() || !isRunning); }
+        [&]{ return (chip8PressedKey.has_value() || !isRunning); }
         );
 
-    if (getChip8Key().has_value())
+    if (chip8PressedKey.has_value())
     {
-        Register chip8PressedKey = getChip8Key().value();
-
-        registers[x] = static_cast<Register>(chip8PressedKey);
+        registers[x] = static_cast<Register>(chip8PressedKey.value());
     }
 }
 
@@ -949,14 +849,14 @@ void Chip8::Chip8::addI(const uint8_t x)
 
 void Chip8::Chip8::ldFVx(const uint8_t x)
 {
-    uint8_t val_x = registers[x];
+    Register val_x = registers[x];
 
     I = static_cast<uint16_t>(val_x * 5);
 }
 
 void Chip8::Chip8::ldB(const uint8_t x)
 {
-    uint8_t val_x = registers[x];
+    Register val_x = registers[x];
     ram[I] = static_cast<uint8_t>(val_x / 100);
 
     val_x = static_cast<uint8_t>(val_x - ram[I] * 100);
@@ -966,9 +866,10 @@ void Chip8::Chip8::ldB(const uint8_t x)
     ram[I+2] = static_cast<uint8_t>(val_x);
 }
 
-void Chip8::Chip8::ldIVx(const uint8_t x, Chip8Type flagChip8)
+void Chip8::Chip8::ldIVx(const uint8_t x)
 {
-    if (int(flagChip8))
+    // this instruction differs in chip8 and schip8
+    if (int(chip8Type)) // if chip8Type is schip8
     {
         uint16_t J = I;
         for (int i : std::ranges::iota_view(0, x+1))
@@ -977,7 +878,7 @@ void Chip8::Chip8::ldIVx(const uint8_t x, Chip8Type flagChip8)
             ++J;
         }
     }
-    else
+    else // if chip8Type is chip8
     {
         for (int i : std::ranges::iota_view(0, x+1))
         {
@@ -988,9 +889,10 @@ void Chip8::Chip8::ldIVx(const uint8_t x, Chip8Type flagChip8)
 
 }
 
-void Chip8::Chip8::ldVxI(const uint8_t x, Chip8Type flagChip8)
+void Chip8::Chip8::ldVxI(const uint8_t x)
 {
-    if (int(flagChip8))
+    // this instruction differs in chip8 and schip8
+    if (int(chip8Type)) // if chip8Type is schip8
     {
         uint16_t J = I;
 
@@ -1000,7 +902,7 @@ void Chip8::Chip8::ldVxI(const uint8_t x, Chip8Type flagChip8)
             ++J;
         }
     }
-    else
+    else // if chip8Type is chip8
     {
         for (int i : std::ranges::iota_view(0, x+1))
         {
