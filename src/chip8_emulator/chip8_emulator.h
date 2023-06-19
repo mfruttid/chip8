@@ -5,11 +5,11 @@
 #include "chip8-core/chip8.h"
 #include <cstring>
 
-class Chip8Emulator : private Chip8::Chip8
+class Chip8Emulator : private Chip8
 {
 public:
-    Chip8Emulator(const char* whichChip8Type, const char* whichDrawInstruction) :
-    Chip8(whichChip8Type, whichDrawInstruction) {}
+    Chip8Emulator(const std::string& flagChip8Type, const std::string& flagDrawInstruction, const std::string& flagFading) :
+    Chip8(flagChip8Type, flagDrawInstruction, flagFading) {}
 
     // modifies the renderer to show the display of the chip8
     void renderDisplay( SDL_Renderer* renderer );
@@ -29,7 +29,7 @@ public:
         run( futureDisplayInitialized );
     }
 
-    // it is a legend between the keyboard of the computer and the virtual keyboard of the chip8
+    // legend between the keyboard of the computer and the virtual keyboard of the chip8
     // The keys are used to simulate the keyboard of the chip8 are the following:
     // 1 = 0x1; 2 = 0x2; 3 = 0x3; 4 = 0xc; q = 0x4; w = 0x5; e = 0x6; r = 0xd;
     // a = 0x7; s = 0x8; d = 0x9; f = 0xe; z =0xa; x = 0x0; c =0xb; v = 0xf

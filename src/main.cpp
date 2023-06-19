@@ -1,50 +1,74 @@
 #include "chip8_emulator/chip8_emulator.h"
+#include <tuple>
 
 // sets up the arguments to construct the emulator taking them as input from the user
 // when they started the program
-std::pair<const char*, const char*>setUpSettings(int argc, char **argv)
+const std::array<std::string ,3> setUpSettings(int argc, char** argv)
 {
-    const char* flagChip8;
-    const char* flagDrawInstruction;
+    std::string flagChip8 {"-chip8"}; // default is chip8 instructions
+    std::string flagDrawInstruction {"-clipping"}; // default is clipping
+    std::string flagFading {"-fading"}; // default is fading simulating the phosphorus screen
 
-    // if there are more than two arguments passed by the user and the third is the string schip8
-    // then we want to use the settings of the schip8
-    if ( argc > 2 && std::strcmp( argv[2], "schip8") == 0 )
+    for ( int i { 0 }; i < argc; ++i )
     {
-        flagChip8 = "schip8";
-    }
-    // the default option is the settings of the chip8
-    else
-    {
-        flagChip8 = "chip8";
-    }
+        if ( argv[i][0] == '-' )
+        {
+            switch ( argv[i][1] )
+            {
+            case 'f':
+                flagFading = "-f"; // flag for flickering pixels
+                break;
 
-    // if there are more than two arguments passed by the user and the third or fourth of them is
-    // the string "wrap", then we want to use the wrapping draw instruction
-    if ( argc > 2 && ( std::strcmp( argv[2], "wrap" ) == 0 || std::strcmp( argv[3], "wrap" ) == 0 ) )
-    {
-        flagDrawInstruction = "wrap";
+            case 's':
+                flagChip8 = "-s"; // flag for superchip8
+                break;
+
+            case 'w':
+                flagDrawInstruction = "-w"; // flag for wrapping sprites
+                break;
+
+            case 'h': // in case user is asking for help on how to use the program
+                std::cout << "Emulator of a chip8:" << '\n';
+                std::cout << "type the absolute path of a chip8 program to start" << '\n';
+                std::cout <<
+                    "-s : flag for using the set of instructions of the super chip8 (default: use instructions of chip8)" << '\n';
+                std::cout <<
+                    "-w : the drawing instruction wraps the sprites (default: the drawing instruction clips the sprites)" << '\n';
+                std::cout <<
+                    "-f : disables the fading effect, making the pixels flicker " <<
+                    "(default: unset pixels slowly fade to black, simulating the old phosphorus screens effect)" << '\n';
+                break;
+
+            default:
+                break;
+            }
+        }
     }
-    // the default option is the clipping draw instruction
-    else
-    {
-        flagDrawInstruction = "clip";
-    }
-    return std::make_pair( flagChip8, flagDrawInstruction );
+    const std::array<std::string ,3> res {flagChip8, flagDrawInstruction, flagFading};
+    return res;
 }
 
-int main(int argc, char **argv)
+
+int main(int argc, char** argv)
 {
     if (argc > 1) // check there is a path for a program in input
     {
-        std::filesystem::path programPath { argv[1] };
-
         auto settings = setUpSettings(argc, argv);
 
-        const char* flagChip8 = std::get<0>( settings );
-        const char* flagDrawInstruction = std::get<1>( settings );
+        // if the first argument is "-h", then we print the useful info during setUpSetting
+        // so we have nothing left to do
+        if (std::strcmp(argv[1], "-h") == 0)
+        {
+            return 0;
+        }
 
-        Chip8Emulator emulator = Chip8Emulator(flagChip8, flagDrawInstruction);
+        std::filesystem::path programPath { argv[1] };
+
+        const std::string& flagChip8 = settings[0];
+        const std::string& flagDrawInstruction = settings[1];
+        const std::string& fadingFlag = settings[2];
+
+        Chip8Emulator emulator = Chip8Emulator(flagChip8, flagDrawInstruction, fadingFlag);
 
         std::promise<bool> promiseDisplayInitialized;
         std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();

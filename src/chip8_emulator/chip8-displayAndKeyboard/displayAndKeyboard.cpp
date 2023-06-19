@@ -102,7 +102,10 @@ std::optional<uint8_t> Chip8Emulator::getChip8Key(std::optional<SDL_Scancode> pr
 void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
 {
     // every time we show a new frame, the fading level of the pixels decreases
-    display.decreaseFadingLevel();
+    if (fadingFlag == Fading::on)
+    {
+        display.decreaseFadingLevel();
+    }
 
     // sets the background color to black
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
@@ -127,12 +130,12 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
             else if (pixel.fadingLevel > 0)
             {
                 // the lightest grey we want to show has rgb code (125,125,125)
-                int32_t LIGHTESTGREY { 125 };
+                constexpr int32_t lightestGrey { 125 };
 
                 // the off pixel gets a color basing on the fading level
                 // we want the color to be given by the rgb code
                 // (colorShade,colorShade,colorShade), which is grey
-                int32_t n = display.MAXIMALFADING / LIGHTESTGREY;
+                int32_t n = display.maximalFading / lightestGrey;
                 uint8_t colorShade = static_cast<uint8_t>( pixel.fadingLevel / n );
 
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
