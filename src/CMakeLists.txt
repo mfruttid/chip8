@@ -1,8 +1,11 @@
 add_executable( main )
 set_target_properties( main PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME} )
 
-
 target_compile_definitions( main PUBLIC "SDL_MAIN_HANDLED" )
+
+target_include_directories( main PUBLIC  "chip8_emulator/sound/"
+                                         "chip8_emulator/chip8-core/"
+                                         "chip8_emulator/")
 
 target_sources( main PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"
@@ -18,9 +21,11 @@ target_sources( main PRIVATE
 add_executable( tests )
 set_target_properties( tests PROPERTIES OUTPUT_NAME tests.bin )
 
-
 target_compile_definitions( tests PUBLIC "SDL_MAIN_HANDLED" )
 
+target_include_directories( tests PUBLIC  "chip8_emulator/sound/"
+                                         "chip8_emulator/chip8-core/"
+                                         "chip8_emulator/")
 target_sources( tests PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"
     "../tests/test.cpp"

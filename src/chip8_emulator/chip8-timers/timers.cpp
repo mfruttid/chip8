@@ -1,5 +1,5 @@
-#include "../chip8-core/chip8.h"
-#include "../sound/sound.h"
+#include <chip8.h>
+#include <sound.h>
 #include <chrono>
 
 void Chip8::decreaseTimer(std::atomic<Register>& timer)
@@ -25,7 +25,7 @@ void Chip8::decreaseDelayTimer()
 
 void Chip8::decreaseSoundTimer()
 {
-    static Sound sound { "../../sounds/test.wav" };
+    static Sound sound { "../../../sounds/beep.wav" };
 
     sound.playSound();
 

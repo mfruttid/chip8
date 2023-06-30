@@ -1,4 +1,4 @@
-#include "../chip8_emulator.h"
+#include <chip8_emulator.h>
 
 std::optional<uint8_t> Chip8Emulator::getChip8Key(std::optional<SDL_Scancode> pressedKey) const
 {
