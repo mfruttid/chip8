@@ -13,7 +13,7 @@
 #include <future>
 #include <condition_variable>
 #include <chrono>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <span>
 #include <thread>
 #include <functional>

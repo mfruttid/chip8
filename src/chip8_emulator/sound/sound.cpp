@@ -7,7 +7,7 @@ Sound::Sound(std::filesystem::path path) :
     mWaveLength { }
 {
     // we load the WAVE file into memory, checking that this doesn't cause any error
-    if ( SDL_LoadWAV( path.c_str(), &mAudioSpec, &mWaveStart, &mWaveLength ) == NULL )
+    if ( SDL_LoadWAV( path.string().c_str(), &mAudioSpec, &mWaveStart, &mWaveLength) == NULL)
     {
         std::cerr << "Sound loading error: " << SDL_GetError() << "\n";
     }

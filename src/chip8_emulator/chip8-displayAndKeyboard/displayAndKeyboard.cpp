@@ -208,6 +208,7 @@ void Chip8Emulator::renderAndKeyboard( std::promise<bool>& promiseDisplayInitial
     displayLock.unlock();
 
     SDL_Event ev;
+    ev.type = 0;
 
     while ( isRunning )
     {
