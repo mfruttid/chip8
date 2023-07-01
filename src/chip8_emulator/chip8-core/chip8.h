@@ -3,6 +3,7 @@
 #include <iostream>
 #include <array>
 #include <string>
+#include <string_view>
 #include <fstream>
 #include <filesystem>
 #include <cassert>
@@ -22,350 +23,160 @@
 
 class Chip8 {
 
+public:
+
+    Chip8(std::string_view flagChip8Type, std::string_view flagDrawInstruction, std::string_view flagFading);
+
 private:
 
     // some instructions differ and some programs run correctly
     // with one set of instructions and others with the other
     // the default one is chip8, but if you specify "schip8"
     // when you start the program, the set of instructions used changes
-    enum class Chip8Type { chip8, schip8 };
+    enum class InstructionSet { chip8, schip8 };
 
     // there are two different versions of the draw instruction dxyn
     // one of them clips the pixels that are positioned over the end of the display
     // the other wraps them to the other side of the display
     // the default setting is clipping, but this can be changed specifying "wrap"
     // when starting the program
-    enum class DrawInstruction { clip, wrap };
+    enum class DrawBehaviour { clip, wrap };
 
     using Register = uint8_t;
 
     using Address = uint16_t;
 
-    class Instruction {
-    public:
+    // this struct could be an alias of uint16_t
+    // it is wrapped only for type safety, so that it is not possible 
+    // to perform integer operations on the instructions
+    struct Instruction {
 
-        explicit Instruction( const uint16_t i ) : inst{ i } {}
+        explicit Instruction( const uint16_t i ) : m_inst{ i } {}
 
-        uint16_t inst;
+        uint16_t m_inst;
 
-    };
-
-    // font sprites that represent numbers from 0x0 to 0xf
-    class HexadecimalSprite {
-    public:
-
-        HexadecimalSprite(uint8_t u) : sprite { std::array<uint8_t, 5>() }
-        {
-            assert((0 <= u) && (u <= 0xf));
-
-            switch (u)
-            {
-            case 0x0:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x90;
-                sprite[2] = 0x90;
-                sprite[3] = 0x90;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x1:
-            {
-                sprite[0] = 0x20;
-                sprite[1] = 0x60;
-                sprite[2] = 0x20;
-                sprite[3] = 0x20;
-                sprite[4] = 0x70;
-                break;
-            }
-
-            case 0x2:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x10;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x80;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x3:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x10;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x10;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x4:
-            {
-                sprite[0] = 0x90;
-                sprite[1] = 0x90;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x10;
-                sprite[4] = 0x10;
-                break;
-            }
-
-            case 0x5:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x80;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x10;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x6:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x80;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x90;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x7:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x10;
-                sprite[2] = 0x20;
-                sprite[3] = 0x40;
-                sprite[4] = 0x40;
-                break;
-            }
-
-            case 0x8:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x90;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x90;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0x9:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x90;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x10;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0xa:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x90;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x90;
-                sprite[4] = 0x90;
-                break;
-            }
-
-            case 0xb:
-            {
-                sprite[0] = 0xe0;
-                sprite[1] = 0x90;
-                sprite[2] = 0xe0;
-                sprite[3] = 0x90;
-                sprite[4] = 0xe0;
-                break;
-            }
-
-            case 0xc:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x80;
-                sprite[2] = 0x80;
-                sprite[3] = 0x80;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0xd:
-            {
-                sprite[0] = 0xe0;
-                sprite[1] = 0x90;
-                sprite[2] = 0x90;
-                sprite[3] = 0x90;
-                sprite[4] = 0xe0;
-                break;
-            }
-
-            case 0xe:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x80;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x80;
-                sprite[4] = 0xf0;
-                break;
-            }
-
-            case 0xf:
-            {
-                sprite[0] = 0xf0;
-                sprite[1] = 0x80;
-                sprite[2] = 0xf0;
-                sprite[3] = 0x80;
-                sprite[4] = 0x80;
-                break;
-            }
-
-            default:
-                break;
-            }
-        }
-
-        std::array<uint8_t, 5> sprite;
     };
 
 protected:
 
     enum class Status { off, on };
 
-    class Pixel {
-    public:
+    struct Pixel {
 
-        constexpr Pixel() : status{ Status::off }, fadingLevel{ 0 } { }
-        Pixel(Status s, int32_t fadinglev) : status{ s }, fadingLevel{ fadinglev } { }
+        constexpr Pixel() : m_status{ Status::off }, m_fadingLevel{ 0 } { }
+        Pixel(Status s, int32_t fadinglev) : m_status{ s }, m_fadingLevel{ fadinglev } { }
 
-        // xor between pixel and u where u = 0 or 1
+        // xor between pixel and status where status = off = 0 or on = 1
         // keeps the same fading level
-        Pixel operator^(uint8_t u) const;
+        Pixel operator^(Status s);
 
         // says if a pixel is on or off
-        Status status;
+        Status m_status;
 
         // if a pixel turns from on to off, it doesn't completely go black,
         // simulating an old phosphorous CRT-style effect.
         // The fadingLevel takes care of how much the pixel is faded:
         // the higher it is, the lighter the color of the pixel
-        int32_t fadingLevel;
+        int32_t m_fadingLevel;
     };
 
     enum class Fading { on, off };
+
     class Display {
     public:
         Display(Fading fadingFlag) :
-            frame{ std::array< std::array< Pixel, 64 >, 32 >() },
-            maximalFading{ (fadingFlag == Fading::on)? 500 : 0 }
-            {}
+            m_maximalFading{ (fadingFlag == Fading::on) ? m_MAXIMAL_FADING_VALUE : 0 }
+        {}
 
         // decrease fading level by 1 (if > 0) for each pixel in the frame
         void decreaseFadingLevel();
 
-        // takes the vector v and does xor with the pixels starting at coordinate (x,y)
+        // does xor of the sprite with the pixels starting at coordinate (x,y)
         // returns true if this causes any pixel to be unset and false otherwise
         // clips the pixels over the end of the screen
-        bool drwClip(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+        bool drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
 
-        // takes the vector v and does xor with the pixels starting at coordinate (x,y)
+        // does xor of the sprite with the pixels starting at coordinate (x,y)
         // returns true if this causes any pixel to be unset and false otherwise
         // wraps the pixels over the end of the screen
-        bool drwWrap(std::vector<uint8_t>&& a, const uint8_t x, const uint8_t y);
+        bool drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
 
-        std::array< std::array< Pixel, 64 >, 32 > frame;
+    //private:
+        static constexpr int m_DISPLAY_WIDTH{ 64 };
+        static constexpr int m_DISPLAY_HEIGHT{ 32 };
+        static constexpr int m_MAXIMAL_FADING_VALUE{ 500 };
+
+        std::array< std::array< Pixel, m_DISPLAY_WIDTH >, m_DISPLAY_HEIGHT > m_frame{};
 
         // it's the maximal value the fadingLevel of a pixel can have
         // The higher the MAXIMALFADING, the longer it will take for a pixel
         // to go completely black.
         // It has default value of 500, which results to the display showing
         // two different tones of grey every time a pixel is turned off
-        int32_t maximalFading;
+        int32_t m_maximalFading{};
     };
 
-protected:
 
-    // the ram consists of register 0 to 4095 and each register has 8 bits
-    std::array< Register, 4096 > ram;
+    // the m_ram consists of register 0 to 4095 and each register has 8 bits
+    std::array< Register, 4096 > m_ram{};
 
-    std::array< Register, 16 > registers; // chip-8 has 16 registers of 8 bits
+    std::array< Register, 16 > m_registers{}; // chip-8 has 16 m_registers of 8 bits
 
-    Address I; // 16-bits register to store memory address
+    Address m_I{}; // 16-bits register to store memory address
 
-    std::atomic< Register > delayTimer; // 8-bits register for delay
-    std::atomic< Register > soundTimer; // 8-bits register for sound
+    std::atomic< Register > m_delayTimer{}; // 8-bits register for delay
+    std::atomic< Register > m_soundTimer{}; // 8-bits register for sound
 
-    Address PC; // program counter
+    Address m_PC; // program counter
 
-    uint8_t SP; // 8 bits for pointing to the topmost level of the stack
+    uint8_t m_SP{}; // 8 bits for pointing to the topmost level of the stack
 
-    std::array< Address, 16 > stack; // the stack is an array of 16 16-bits values to store addresses
+    std::array< Address, 16 > m_stack{}; // the stack is an array of 16 16-bits values to store addresses
 
-    Fading fadingFlag; // flag saying whether we want to enable the fading effect or not
+    // array of the hexadecimal sprites to be copied in m_ram
+    inline constexpr static std::array< std::array<uint8_t, 5>, 16 > m_hexadecimalSprites {{
+        { 0xf0, 0x90, 0x90, 0x90, 0xf0 },
+        { 0x20, 0x60, 0x20, 0x20, 0x70 },
+        { 0xf0, 0x10, 0xf0, 0x80, 0xf0 },
+        { 0xf0, 0x10, 0xf0, 0x10, 0xf0 },
+        { 0x90, 0x90, 0xf0, 0x10, 0x10 },
+        { 0xf0, 0x80, 0xf0, 0x10, 0xf0 },
+        { 0xf0, 0x80, 0xf0, 0x90, 0xf0 },
+        { 0xf0, 0x10, 0x20, 0x40, 0x40 },
+        { 0xf0, 0x90, 0xf0, 0x90, 0xf0 },
+        { 0xf0, 0x90, 0xf0, 0x10, 0xf0 },
+        { 0xf0, 0x90, 0xf0, 0x90, 0x90 },
+        { 0xe0, 0x90, 0xe0, 0x90, 0xe0 },
+        { 0xf0, 0x80, 0x80, 0x80, 0xf0 },
+        { 0xe0, 0x90, 0x90, 0x90, 0xe0 },
+        { 0xf0, 0x80, 0xf0, 0x80, 0xf0 },
+        { 0xf0, 0x80, 0xf0, 0x80, 0x80 }
+     }};
 
-    Display display;
-    std::mutex displayMutex;
+    Fading m_fadingFlag; // flag saying whether we want to enable the fading effect or not
 
-    bool isRunning; // tells when the user closed the window so that the program stops
+    Display m_display;
+    std::mutex m_displayMutex{};
 
-    std::optional<Register> chip8PressedKey;
-    std::mutex keyboardOrQuitWindowMutex;
-    std::condition_variable keyIsPressedOrWindowClosed;
+    bool m_isRunning{}; // tells when the user closed the window so that the program stops
+
+    std::optional<Register> m_chip8PressedKey{};
+    std::mutex m_keyboardOrQuitWindowMutex{};
+    std::condition_variable m_keyIsPressedOrWindowClosed{};
 
     // specifies the settings with which we want to run the program
-    Chip8Type chip8Type; // set of instructions
-    DrawInstruction drawInstruction; // drawing sprites using clipping or wrapping
-
-
-public:
-
-    Chip8(const std::string& flagChip8Type, const std::string& flagDrawInstruction, const std::string& flagFading) :
-        ram{ std::array<Register, 4096>() },
-        registers{ std::array<Register, 16>() },
-        I{ 0 },
-        delayTimer{ std::atomic<Register>() },
-        soundTimer{ std::atomic<Register>() },
-        PC{ Address(0x200) }, // usually the first 0x200 addresses in ram are not used by the program
-        SP{ 0 },
-        stack{ std::array<Address, 16>() },
-        fadingFlag { (flagFading == "-f")? Fading::off : Fading::on },
-        display{ Display(fadingFlag) },
-        displayMutex{ std::mutex() },
-        isRunning { false },
-        chip8PressedKey { std::optional<Register>() },
-        keyboardOrQuitWindowMutex { std::mutex() },
-        keyIsPressedOrWindowClosed { std::condition_variable() },
-        // if whichChip8Type is "-s", then we set the chip8Type to be schip8,
-        // otherwise it is chip8
-        chip8Type { (flagChip8Type == "-s")? Chip8Type::schip8 : Chip8Type::chip8 },
-        // if whichDrawInstruction is "wrap", then we set drawInstruction to be wrap
-        // otherwise it is clip
-        drawInstruction { (flagDrawInstruction == "-w" )?  DrawInstruction::wrap
-                            : DrawInstruction::clip }
-    {
-        // the first addresses of the ram are used for the hexadecimal sprites
-        uint8_t ramIndex = 0;
-        for (uint8_t u = 0x0; u <= 0xf; ++u)
-        {
-            const HexadecimalSprite& hexSprite { u };
-
-            for (uint8_t line : hexSprite.sprite)
-            {
-                ram[ramIndex] = line;
-                ++ramIndex;
-            }
-        }
-    }
+    InstructionSet m_instructionSet; // set of instructions
+    DrawBehaviour m_drawBehaviour; // drawing sprites using clipping or wrapping
 
 protected:
-    // read instructions from file and copies them in ram starting at address 0x200
-    void readFromFile(const std::filesystem::path path);
+    // read instructions from file and copies them in m_ram starting at address 0x200
+    void readFromFile( const std::filesystem::path& path );
 
-    // runs the program that has been copied in ram
+    // runs the program that has been copied in m_ram
     void run( std::future<bool>& futureDisplayInitialized );
 
 private:
-    void execute(const Instruction i);
+    void execute( const Instruction i );
 
     static void decreaseTimer( std::atomic<Register>& timer );
 
@@ -374,105 +185,107 @@ private:
     void decreaseSoundTimer();
 
     // instruction 00e0
-    void cls() { display = Display(fadingFlag); }
+    void cls() { m_display = Display( m_fadingFlag ); }
 
     // instruction 00ee
-    void ret() { PC = stack[SP]; --SP; }
+    void ret() { m_PC = m_stack[m_SP]; --m_SP; }
 
     // instrucion 1nnn
-    void jp(const uint16_t nnn);
+    void jp( const uint16_t nnn );
 
     // instruction 2nnn
-    void call(const uint16_t nnn);
+    void call( const uint16_t nnn );
 
     // instruction 3xkk
-    void se(const uint16_t xkk);
+    void se( const uint16_t xkk );
 
     // instruction 4xkk
-    void sne(const uint16_t xkk);
+    void sne( const uint16_t xkk );
 
     // instruction 5xy0
-    void se(const uint8_t xy);
+    void se( const uint8_t xy );
 
     // instruction 6xkk
-    void ld(const uint16_t xkk);
+    void ld( const uint16_t xkk );
 
     // instruction 7xkk
-    void add(const uint16_t xkk);
+    void add( const uint16_t xkk );
 
     // instruction 8xy0
-    void ld(const uint8_t xy);
+    void ld( const uint8_t xy );
 
     // instruction 8xy1
-    void bitOr(const uint8_t xy);
+    void bitOr( const uint8_t xy );
 
     // instruction 8xy2
-    void bitAnd(const uint8_t xy);
+    void bitAnd( const uint8_t xy );
 
     // instruction 8xy3
-    void bitXor(const uint8_t xy);
+    void bitXor( const uint8_t xy );
 
     // instruction 8xy4
-    void add(const uint8_t xy);
+    void add( const uint8_t xy );
 
     // instruction 8xy5
-    void sub(const uint8_t xy);
+    void sub( const uint8_t xy );
 
     // instruction 8xy6
-    void shr(const uint8_t xy);
+    void shr( const uint8_t xy );
 
     // instruction 8xy7
-    void subn(const uint8_t xy);
+    void subn( const uint8_t xy );
 
     // instruction 8xye
-    void shl(const uint8_t xy);
+    void shl( const uint8_t xy );
 
     // instruction 9xy0
-    void sne(const uint8_t xy);
+    void sne( const uint8_t xy );
 
     // instruction annn
-    void ldI(const uint16_t nnn);
+    void ldI( const uint16_t nnn );
 
     // instruction bnnn
-    void jpV0(const uint16_t nnn);
+    void jpV0( const uint16_t nnn );
 
     // instruction cxkk
-    void rnd(const uint16_t xkk);
+    void rnd( const uint16_t xkk );
 
     // instruction dxyn
-    void drw(const uint16_t xyn);
+    void drw( const uint16_t xyn );
 
     // instruction ex9e
-    void skp(const uint8_t x);
+    void skp( const uint8_t x );
 
     // instruction exa1
-    void sknp(const uint8_t x);
+    void sknp( const uint8_t x );
 
     // instruction fx07
-    void ldVxDT(const uint8_t x);
+    void ldVxDT( const uint8_t x );
 
     // instruction fx0a
-    void ldVxK(const uint8_t x);
+    void ldVxK( const uint8_t x );
 
     // instruction fx15
-    void ldDTVx(const uint8_t x);
+    void ldDTVx( const uint8_t x );
 
     // instruction fx18
-    void ldSTVx(const uint8_t x);
+    void ldSTVx( const uint8_t x );
 
     // instruction fx1e
-    void addI(const uint8_t x);
+    void addI( const uint8_t x );
 
     // instruction fx29
-    void ldFVx(const uint8_t x);
+    void ldFVx( const uint8_t x );
 
     // instruction fx33
-    void ldB(const uint8_t x);
+    void ldB( const uint8_t x );
 
     // instruction fx55
-    void ldIVx(const uint8_t x);
+    void ldIVx( const uint8_t x );
 
     // instruction fx65
-    void ldVxI(const uint8_t x);
+    void ldVxI( const uint8_t x );
 };
+
+
 

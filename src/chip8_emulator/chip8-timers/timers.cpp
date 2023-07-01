@@ -20,7 +20,7 @@ void Chip8::decreaseTimer(std::atomic<Register>& timer)
 
 void Chip8::decreaseDelayTimer()
 {
-    decreaseTimer(delayTimer);
+    decreaseTimer(m_delayTimer);
 }
 
 void Chip8::decreaseSoundTimer()
@@ -29,7 +29,7 @@ void Chip8::decreaseSoundTimer()
 
     sound.playSound();
 
-    decreaseTimer(soundTimer);
+    decreaseTimer(m_soundTimer);
 
     sound.pauseSound();
 }

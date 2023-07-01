@@ -64,21 +64,21 @@ int main(int argc, char** argv)
 
         std::filesystem::path programPath { argv[1] };
 
-        const std::string& flagChip8 = settings[0];
-        const std::string& flagDrawInstruction = settings[1];
-        const std::string& fadingFlag = settings[2];
+        const std::string_view flagChip8 = settings[0];
+        const std::string_view flagDrawInstruction = settings[1];
+        const std::string_view fadingFlag = settings[2];
 
-        Chip8Emulator emulator = Chip8Emulator(flagChip8, flagDrawInstruction, fadingFlag);
+        Chip8Emulator emulator{ flagChip8, flagDrawInstruction, fadingFlag };
 
         std::promise<bool> promiseDisplayInitialized;
         std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();
 
         // the chip8 must run the instruction in one thread
         std::thread chip8Thread {
-            &Chip8Emulator::runChip8,
+            &Chip8Emulator::runChip8Program,
             std::ref(emulator),
             std::ref(programPath),
-            std::ref(futureDisplayInitialized)};
+            std::move(futureDisplayInitialized)};
         chip8Thread.detach();
 
         // the main thread shows and updates the window and updates the pressed keys in the meantime
