@@ -116,11 +116,14 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
     SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
     SDL_RenderClear(renderer);
 
-    for (int row = 0; row < 32; ++row)
+    const std::array < std::array<Pixel, Display::DISPLAY_WIDTH>, Display::DISPLAY_HEIGHT>* frame =
+        m_display.getDisplayFrame();
+
+    for (int row = 0; row < Display::DISPLAY_HEIGHT; ++row)
     {
-        for (int column=0; column<64; ++column)
+        for (int column=0; column< Display::DISPLAY_WIDTH; ++column)
         {
-            Chip8::Chip8::Pixel pixel = m_display.m_frame[row][column];
+            Chip8::Chip8::Pixel pixel = (*frame)[row][column];
 
             if (pixel.m_status == Chip8::Chip8::Status::on)
             {
@@ -140,7 +143,7 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
                 // the off pixel gets a color basing on the fading level
                 // we want the color to be given by the rgb code
                 // (colorShade,colorShade,colorShade), which is grey
-                int32_t n = m_display.m_maximalFading / lightestGrey;
+                int32_t n = Display::MAXIMAL_FADING_VALUE / lightestGrey;
                 uint8_t colorShade = static_cast<uint8_t>( pixel.m_fadingLevel / n );
 
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);

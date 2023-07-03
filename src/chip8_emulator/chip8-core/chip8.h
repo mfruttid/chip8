@@ -20,7 +20,6 @@
 #include <functional>
 #include <cstring>
 
-
 class Chip8 {
 
 public:
@@ -85,7 +84,7 @@ protected:
     class Display {
     public:
         Display(Fading fadingFlag) :
-            m_maximalFading{ (fadingFlag == Fading::on) ? m_MAXIMAL_FADING_VALUE : 0 }
+            m_maximalFading{ (fadingFlag == Fading::on) ? MAXIMAL_FADING_VALUE : 0 }
         {}
 
         // decrease fading level by 1 (if > 0) for each pixel in the frame
@@ -101,12 +100,13 @@ protected:
         // wraps the pixels over the end of the screen
         bool drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
 
-    //private:
-        static constexpr int m_DISPLAY_WIDTH{ 64 };
-        static constexpr int m_DISPLAY_HEIGHT{ 32 };
-        static constexpr int m_MAXIMAL_FADING_VALUE{ 500 };
+        static constexpr int DISPLAY_WIDTH{ 64 };
+        static constexpr int DISPLAY_HEIGHT{ 32 };
+        static constexpr int MAXIMAL_FADING_VALUE{ 500 };
 
-        std::array< std::array< Pixel, m_DISPLAY_WIDTH >, m_DISPLAY_HEIGHT > m_frame{};
+    private:
+        std::unique_ptr<std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>> m_frame
+            { new std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>{} };
 
         // it's the maximal value the fadingLevel of a pixel can have
         // The higher the MAXIMALFADING, the longer it will take for a pixel
@@ -114,6 +114,12 @@ protected:
         // It has default value of 500, which results to the display showing
         // two different tones of grey every time a pixel is turned off
         int32_t m_maximalFading{};
+
+    public:
+        const std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>* getDisplayFrame() 
+        { 
+            return &(*m_frame); 
+        }
     };
 
 

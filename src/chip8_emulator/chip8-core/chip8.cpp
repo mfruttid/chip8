@@ -11,7 +11,7 @@ Chip8::Pixel Chip8::Pixel::operator^( Status s )
 
 void Chip8::Display::decreaseFadingLevel()
 {
-    for (std::array<Pixel, 64> & row : m_frame)
+    for (std::array<Pixel, 64> & row : *m_frame)
     {
         for ( Pixel & pixel : row )
         {
@@ -41,7 +41,7 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
         {
             size_t columnOffset = (x + column) % 64;
 
-            Pixel& pixel { m_frame[rowOffset][columnOffset] };
+            Pixel& pixel { (*m_frame)[rowOffset][columnOffset] };
 
             bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
 
@@ -80,7 +80,7 @@ bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, co
         int row = y + offset;
         for ( int column = x; column <= maxWidth; ++column )
         {
-            Pixel& pixel { m_frame[row][column] };
+            Pixel& pixel { (*m_frame)[row][column] };
 
             bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
 
