@@ -109,7 +109,7 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
     // every time we show a new frame, the fading level of the pixels decreases
     if (m_fadingFlag == Fading::on)
     {
-        m_display.decreaseFadingLevel();
+        m_display->decreaseFadingLevel();
     }
 
     // sets the background color to black
@@ -117,7 +117,7 @@ void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
     SDL_RenderClear(renderer);
 
     const std::array < std::array<Pixel, Display::DISPLAY_WIDTH>, Display::DISPLAY_HEIGHT>* frame =
-        m_display.getDisplayFrame();
+        m_display->getDisplayFrame();
 
     for (int row = 0; row < Display::DISPLAY_HEIGHT; ++row)
     {

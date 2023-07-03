@@ -20,13 +20,13 @@
 #include <functional>
 #include <cstring>
 
-class Chip8 {
 
+class Chip8 {
 public:
 
     Chip8(std::string_view flagChip8Type, std::string_view flagDrawInstruction, std::string_view flagFading);
 
-private:
+//private:
 
     // some instructions differ and some programs run correctly
     // with one set of instructions and others with the other
@@ -60,67 +60,11 @@ protected:
 
     enum class Status { off, on };
 
-    struct Pixel {
-
-        constexpr Pixel() : m_status{ Status::off }, m_fadingLevel{ 0 } { }
-        Pixel(Status s, int32_t fadinglev) : m_status{ s }, m_fadingLevel{ fadinglev } { }
-
-        // xor between pixel and status where status = off = 0 or on = 1
-        // keeps the same fading level
-        Pixel operator^(Status s);
-
-        // says if a pixel is on or off
-        Status m_status;
-
-        // if a pixel turns from on to off, it doesn't completely go black,
-        // simulating an old phosphorous CRT-style effect.
-        // The fadingLevel takes care of how much the pixel is faded:
-        // the higher it is, the lighter the color of the pixel
-        int32_t m_fadingLevel;
-    };
+    struct Pixel;
 
     enum class Fading { on, off };
 
-    class Display {
-    public:
-        Display(Fading fadingFlag) :
-            m_maximalFading{ (fadingFlag == Fading::on) ? MAXIMAL_FADING_VALUE : 0 }
-        {}
-
-        // decrease fading level by 1 (if > 0) for each pixel in the frame
-        void decreaseFadingLevel();
-
-        // does xor of the sprite with the pixels starting at coordinate (x,y)
-        // returns true if this causes any pixel to be unset and false otherwise
-        // clips the pixels over the end of the screen
-        bool drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
-
-        // does xor of the sprite with the pixels starting at coordinate (x,y)
-        // returns true if this causes any pixel to be unset and false otherwise
-        // wraps the pixels over the end of the screen
-        bool drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
-
-        static constexpr int DISPLAY_WIDTH{ 64 };
-        static constexpr int DISPLAY_HEIGHT{ 32 };
-        static constexpr int MAXIMAL_FADING_VALUE{ 500 };
-
-    private:
-        std::unique_ptr<std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>> m_frame
-            { new std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>{} };
-
-        // it's the maximal value the fadingLevel of a pixel can have
-        // The higher the MAXIMALFADING, the longer it will take for a pixel
-        // to go completely black.
-        // It has default value of 500, which results to the display showing
-        // two different tones of grey every time a pixel is turned off
-        int32_t m_maximalFading{};
-
-    public:
-        const std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>* getDisplayFrame() 
-        { 
-            return &(*m_frame); 
-        }
-    };
+    class Display;
 
 
     // the m_ram consists of register 0 to 4095 and each register has 8 bits
@@ -161,7 +105,7 @@ protected:
 
     Fading m_fadingFlag; // flag saying whether we want to enable the fading effect or not
 
-    Display m_display;
+    std::unique_ptr<Display> m_display{};
     std::mutex m_displayMutex{};
 
     bool m_isRunning{}; // tells when the user closed the window so that the program stops
@@ -191,7 +135,7 @@ private:
     void decreaseSoundTimer();
 
     // instruction 00e0
-    void cls() { m_display = Display( m_fadingFlag ); }
+    void cls() { m_display = std::make_unique<Display>( m_fadingFlag ); }
 
     // instruction 00ee
     void ret() { m_PC = m_stack[m_SP]; --m_SP; }
@@ -293,5 +237,60 @@ private:
     void ldVxI( const uint8_t x );
 };
 
+struct Chip8::Pixel {
+    constexpr Pixel() : m_status{ Status::off }, m_fadingLevel{ 0 } { }
+    Pixel(Status s, int32_t fadinglev) : m_status{ s }, m_fadingLevel{ fadinglev } { }
 
+    // xor between pixel and status where status = off = 0 or on = 1
+    // keeps the same fading level
+    Chip8::Pixel operator^(Status s);
 
+    // says if a pixel is on or off
+    Chip8::Status m_status;
+
+    // if a pixel turns from on to off, it doesn't completely go black,
+    // simulating an old phosphorous CRT-style effect.
+    // The fadingLevel takes care of how much the pixel is faded:
+    // the higher it is, the lighter the color of the pixel
+    int32_t m_fadingLevel;
+};
+
+class Chip8::Display {
+public:
+    Display(Chip8::Fading fadingFlag) :
+        m_maximalFading{ (fadingFlag == Fading::on) ? MAXIMAL_FADING_VALUE : 0 }
+    {}
+
+    // decrease fading level by 1 (if > 0) for each pixel in the frame
+    void decreaseFadingLevel();
+
+    // does xor of the sprite with the pixels starting at coordinate (x,y)
+    // returns true if this causes any pixel to be unset and false otherwise
+    // clips the pixels over the end of the screen
+    bool drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
+
+    // does xor of the sprite with the pixels starting at coordinate (x,y)
+    // returns true if this causes any pixel to be unset and false otherwise
+    // wraps the pixels over the end of the screen
+    bool drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
+
+    static constexpr int DISPLAY_WIDTH{ 64 };
+    static constexpr int DISPLAY_HEIGHT{ 32 };
+    static constexpr int MAXIMAL_FADING_VALUE{ 500 };
+
+private:
+    std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT> m_frame{};
+
+    // it's the maximal value the fadingLevel of a pixel can have
+    // The higher the MAXIMALFADING, the longer it will take for a pixel
+    // to go completely black.
+    // It has default value of 500, which results to the display showing
+    // two different tones of grey every time a pixel is turned off
+    int32_t m_maximalFading;
+
+public:
+    const std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>* getDisplayFrame()
+    {
+        return &m_frame;
+    }
+};

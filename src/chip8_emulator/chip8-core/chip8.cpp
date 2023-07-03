@@ -11,7 +11,7 @@ Chip8::Pixel Chip8::Pixel::operator^( Status s )
 
 void Chip8::Display::decreaseFadingLevel()
 {
-    for (std::array<Pixel, 64> & row : *m_frame)
+    for (std::array<Pixel, 64> & row : m_frame)
     {
         for ( Pixel & pixel : row )
         {
@@ -41,7 +41,7 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
         {
             size_t columnOffset = (x + column) % 64;
 
-            Pixel& pixel { (*m_frame)[rowOffset][columnOffset] };
+            Pixel& pixel { m_frame[rowOffset][columnOffset] };
 
             bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
 
@@ -80,7 +80,7 @@ bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, co
         int row = y + offset;
         for ( int column = x; column <= maxWidth; ++column )
         {
-            Pixel& pixel { (*m_frame)[row][column] };
+            Pixel& pixel { m_frame[row][column] };
 
             bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
 
@@ -108,7 +108,7 @@ Chip8::Chip8(
 ) :
     m_PC{ Address(0x200) }, // usually the first 0x200 addresses in m_ram are not used by the program
     m_fadingFlag{ (flagFading == "-f") ? Fading::off : Fading::on },
-    m_display{ Display(m_fadingFlag) },
+    m_display{ std::make_unique<Display>( m_fadingFlag ) },
     // if whichChip8Type is "-s", then we set the chip8Type to be schip8,
     // otherwise it is chip8
     m_instructionSet{ (flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8 },
@@ -790,12 +790,12 @@ void Chip8::drw(const uint16_t xyn)
 
     if (m_drawBehaviour == DrawBehaviour::clip)
     {
-        pixelWasUnset = m_display.drwClip(std::move(sprite), coord_x, coord_y);
+        pixelWasUnset = m_display->drwClip(std::move(sprite), coord_x, coord_y);
     }
 
     else
     {
-        pixelWasUnset = m_display.drwWrap(std::move(sprite), coord_x, coord_y);
+        pixelWasUnset = m_display->drwWrap(std::move(sprite), coord_x, coord_y);
     }
 
     if (pixelWasUnset)
