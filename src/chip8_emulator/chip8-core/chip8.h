@@ -66,24 +66,23 @@ protected:
 
     class Display;
 
+    std::unique_ptr<std::array< Register, 4096 >> m_ramPtr = 
+        std::make_unique<std::array< Register, 4096>>();
 
-    // the m_ram consists of register 0 to 4095 and each register has 8 bits
-    std::array< Register, 4096 > m_ram{};
-
-    std::array< Register, 16 > m_registers{}; // chip-8 has 16 m_registers of 8 bits
+    std::array< Register, 16 > m_registers{}; 
 
     Address m_I{}; // 16-bits register to store memory address
 
-    std::atomic< Register > m_delayTimer{}; // 8-bits register for delay
-    std::atomic< Register > m_soundTimer{}; // 8-bits register for sound
+    std::atomic< Register > m_delayTimer{}; 
+    std::atomic< Register > m_soundTimer{}; 
 
     Address m_PC; // program counter
 
     uint8_t m_SP{}; // 8 bits for pointing to the topmost level of the stack
 
-    std::array< Address, 16 > m_stack{}; // the stack is an array of 16 16-bits values to store addresses
+    std::array< Address, 16 > m_stack{}; 
 
-    // array of the hexadecimal sprites to be copied in m_ram
+    // array of the hexadecimal sprites to be copied in m_ramPtr
     inline constexpr static std::array< std::array<uint8_t, 5>, 16 > m_hexadecimalSprites {{
         { 0xf0, 0x90, 0x90, 0x90, 0xf0 },
         { 0x20, 0x60, 0x20, 0x20, 0x70 },
@@ -119,10 +118,10 @@ protected:
     DrawBehaviour m_drawBehaviour; // drawing sprites using clipping or wrapping
 
 protected:
-    // read instructions from file and copies them in m_ram starting at address 0x200
+    // read instructions from file and copies them in m_ramPtr starting at address 0x200
     void readFromFile( const std::filesystem::path& path );
 
-    // runs the program that has been copied in m_ram
+    // runs the program that has been copied in m_ramPtr
     void run( std::future<bool>& futureDisplayInitialized );
 
 private:

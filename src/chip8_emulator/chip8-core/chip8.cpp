@@ -106,7 +106,7 @@ Chip8::Chip8(
     std::string_view flagDrawInstruction,
     std::string_view flagFading
 ) :
-    m_PC{ Address(0x200) }, // usually the first 0x200 addresses in m_ram are not used by the program
+    m_PC{ Address(0x200) }, // usually the first 0x200 addresses in m_ramPtr are not used by the program
     m_fadingFlag{ (flagFading == "-f") ? Fading::off : Fading::on },
     m_display{ std::make_unique<Display>( m_fadingFlag ) },
     // if whichChip8Type is "-s", then we set the chip8Type to be schip8,
@@ -117,7 +117,7 @@ Chip8::Chip8(
     m_drawBehaviour{ (flagDrawInstruction == "-w") ? DrawBehaviour::wrap
                         : DrawBehaviour::clip }
 {
-    // the first addresses of the m_ram are used for the hexadecimal sprites
+    // the first addresses of the m_ramPtr are used for the hexadecimal sprites
     uint8_t ramIndex = 0;
     for (uint8_t u = 0x0; u <= 0xf; ++u)
     {
@@ -125,7 +125,7 @@ Chip8::Chip8(
 
         for (uint8_t line : hexadecimalSprite)
         {
-            m_ram[ramIndex] = line;
+            (*m_ramPtr)[ramIndex] = line;
             ++ramIndex;
         }
     }
@@ -146,7 +146,7 @@ void Chip8::readFromFile( const std::filesystem::path& path )
         {
             byte = static_cast<uint8_t>(file.std::istream::get());
 
-            m_ram[ramAddress] = byte;
+            (*m_ramPtr)[ramAddress] = byte;
 
             ++ramAddress;
         }
@@ -173,10 +173,10 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
         for (int numInstructions = 0; numInstructions < 10; ++numInstructions)
         {
             // one instruction is given by two bytes each
-            uint16_t byte1 = static_cast<uint16_t>(m_ram[m_PC]);
+            uint16_t byte1 = static_cast<uint16_t>((*m_ramPtr)[m_PC]);
             byte1 = static_cast<uint16_t>(byte1 << 8u);
 
-            uint16_t byte2 = static_cast<uint16_t>(m_ram[m_PC+1]);
+            uint16_t byte2 = static_cast<uint16_t>((*m_ramPtr)[m_PC+1]);
 
             Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
 
@@ -783,7 +783,7 @@ void Chip8::drw(const uint16_t xyn)
     std::vector<uint8_t> sprite;
     for (int i=m_I; i<m_I+n; ++i)
     {
-        sprite.emplace_back(m_ram[i]);
+        sprite.emplace_back((*m_ramPtr)[i]);
     }
 
     bool pixelWasUnset;
@@ -885,13 +885,13 @@ void Chip8::ldFVx(const uint8_t x)
 void Chip8::ldB(const uint8_t x)
 {
     Register val_x = m_registers[x];
-    m_ram[m_I] = static_cast<uint8_t>(val_x / 100);
+    (*m_ramPtr)[m_I] = static_cast<uint8_t>(val_x / 100);
 
-    val_x = static_cast<uint8_t>(val_x - m_ram[m_I] * 100);
-    m_ram[m_I+1] = static_cast<uint8_t>(val_x / 10);
+    val_x = static_cast<uint8_t>(val_x - (*m_ramPtr)[m_I] * 100);
+    (*m_ramPtr)[m_I+1] = static_cast<uint8_t>(val_x / 10);
 
-    val_x = static_cast<uint8_t>(val_x - m_ram[m_I+1] * 10);
-    m_ram[m_I+2] = static_cast<uint8_t>(val_x);
+    val_x = static_cast<uint8_t>(val_x - (*m_ramPtr)[m_I+1] * 10);
+    (*m_ramPtr)[m_I+2] = static_cast<uint8_t>(val_x);
 }
 
 void Chip8::ldIVx(const uint8_t x)
@@ -902,7 +902,7 @@ void Chip8::ldIVx(const uint8_t x)
         uint16_t J = m_I;
         for (int i : std::ranges::iota_view(0, x+1))
         {
-            m_ram[J] = m_registers[i];
+            (*m_ramPtr)[J] = m_registers[i];
             ++J;
         }
     }
@@ -910,7 +910,7 @@ void Chip8::ldIVx(const uint8_t x)
     {
         for (int i : std::ranges::iota_view(0, x+1))
         {
-            m_ram[m_I] = m_registers[i];
+            (*m_ramPtr)[m_I] = m_registers[i];
             ++m_I;
         }
     }
@@ -926,7 +926,7 @@ void Chip8::ldVxI(const uint8_t x)
 
         for (int i : std::ranges::iota_view(0, x+1))
         {
-            m_registers[i] = m_ram[J];
+            m_registers[i] = (*m_ramPtr)[J];
             ++J;
         }
     }
@@ -934,7 +934,7 @@ void Chip8::ldVxI(const uint8_t x)
     {
         for (int i : std::ranges::iota_view(0, x+1))
         {
-            m_registers[i] = m_ram[m_I];
+            m_registers[i] = (*m_ramPtr)[m_I];
             ++m_I;
         }
     }
