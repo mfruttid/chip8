@@ -2,18 +2,15 @@
 
 Chip8::Pixel Chip8::Pixel::operator^( Status s )
 {
-    if ( int(m_status) ^ int(s) )
-    {
-        return Chip8::Pixel( Chip8::Status::on, m_fadingLevel );
-    }
-    return Chip8::Pixel(Chip8::Status::off, m_fadingLevel);
+    return (int(m_status) ^ int(s))? Chip8::Pixel(Chip8::Status::on, m_fadingLevel) 
+        : Chip8::Pixel(Chip8::Status::off, m_fadingLevel);
 }
 
 void Chip8::Display::decreaseFadingLevel()
 {
-    for (std::array<Pixel, 64> & row : m_frame)
+    for (std::array<Pixel, DISPLAY_WIDTH>& row : m_frame)
     {
-        for ( Pixel & pixel : row )
+        for ( Pixel& pixel : row )
         {
             if (pixel.m_fadingLevel > 0 && pixel.m_status == Status::off)
             {
@@ -23,6 +20,8 @@ void Chip8::Display::decreaseFadingLevel()
     }
 }
 
+// drwWrap takes ownership of the sprite because it modifies it
+// and it shouldn't be used again after the modifications
 bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y )
 {
     bool res = false;
@@ -30,8 +29,9 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
     size_t size = sprite.size();
 
     // the coordinates (x,y) must represent a point inside the display
-    // and the sprite can be maximum 16 lines long by the chip8 documentation
-    assert(x < 64 && y < 32 && size < 16);
+    assert(x < 64 && y < 32);
+    // the sprite can be maximum 16 lines long by the chip8 documentation
+    assert(size < 16);
 
     for (size_t row = 0; row < size; ++row)
     {
@@ -62,6 +62,8 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
     return res;
 }
 
+// drwClip takes ownership of the sprite because it modifies it
+// and it shouldn't be used again after the modifications
 bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y )
 {
     bool res = false;
@@ -69,8 +71,9 @@ bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, co
     size_t size = sprite.size();
 
     // the coordinates (x,y) must represent a point inside the display
-    // and the sprite can be maximum 16 lines long by the chip8 documentation
-    assert( x<64 && y<32 && size<16 );
+    assert(x < 64 && y < 32);
+    // the sprite can be maximum 16 lines long by the chip8 documentation
+    assert(size < 16);
 
     int maxWidth = std::min(63, x+7); // necessary for clipping the sprite if the width exceeds the display
     int maxHeight = std::min(32-y, static_cast<int>(size)); // necessary for clipping the sprite if the height exceeds the display
@@ -106,14 +109,10 @@ Chip8::Chip8(
     std::string_view flagDrawInstruction,
     std::string_view flagFading
 ) :
-    m_PC{ Address(0x200) }, // usually the first 0x200 addresses in m_ramPtr are not used by the program
+    m_PC{ Address(0x200) }, // the first 0x200 addresses in m_ramPtr are not used by the program
     m_fadingFlag{ (flagFading == "-f") ? Fading::off : Fading::on },
     m_display{ std::make_unique<Display>( m_fadingFlag ) },
-    // if whichChip8Type is "-s", then we set the chip8Type to be schip8,
-    // otherwise it is chip8
     m_instructionSet{ (flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8 },
-    // if whichDrawInstruction is "wrap", then we set drawInstruction to be wrap
-    // otherwise it is clip
     m_drawBehaviour{ (flagDrawInstruction == "-w") ? DrawBehaviour::wrap
                         : DrawBehaviour::clip }
 {
@@ -135,21 +134,24 @@ void Chip8::readFromFile( const std::filesystem::path& path )
 {
     assert(exists(path));
 
-    std::ifstream file { path };
+    // file must be opened in read mode and binary mode.
+    // If not opened in binary mode, the method read used below 
+    // will interpret the byte 1a as an end-of-file character,
+    // interrupting the copy of the program in ram
+    std::ifstream file { path , std::ifstream::in | std::ifstream::binary };
 
     if ( file.is_open() )
     {
-        uint8_t byte;
-        size_t ramAddress = 0x200;
+        // the program must be copied in ram starting from address 0x200, 
+        // which is exactly the address of m_PC
+        char* startProgramAddress = &(reinterpret_cast<char&>((*m_ramPtr)[m_PC]));
 
-        while ( !file.eof() )
-        {
-            byte = static_cast<uint8_t>(file.std::istream::get());
+        // get length of file
+        file.seekg(0, std::ios_base::end); // sets input position indicator at the end of file
+        int length = file.tellg(); // says the position of the input indicator 
+        file.seekg(0, std::ios_base::beg); // resets the input indicator at the beginning of file
 
-            (*m_ramPtr)[ramAddress] = byte;
-
-            ++ramAddress;
-        }
+        file.read(startProgramAddress, length); // copies the file in ram
     }
     else
     {
@@ -163,12 +165,27 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
 
     futureDisplayInitialized.wait();
 
+    // the internal clock of the Chip8 is slower than the internal clock 
+    // of a modern computer.
+    // Thus we need to let the execution thread sleep for some time in between instructions
+    // (more below)
+    std::chrono::duration<double, std::milli> sleep_time{ 0 };
+
     while (m_isRunning)
     {
-        // chip8 has a clock frequency of 500 Hz
-        // we wait the due amount of time after 10 instructions so that
-        // it is more precise
+        // chip8 has a clock frequency of 500 Hz, so we have to let this thread sleep.
+        // We use the function std::this_tread::sleep_for(sleep_time)
+        // This function grants that the thread will sleep for AT LEAST 
+        // sleep_time, but it could sleep a bit more, since it is not super precise.
+        // In order to make the Chip8 clock more precise, I adopted two strategies:
+        // 1) sleep after executing ten instructions at a time, so that 
+        // the overall sleeping time in excess is less significant;
+        // 2) take into account the effective time slept in the previous iteration
+        // when computing the sleep_time. I achieved this by starting to 
+        // measure the time before the thread sleeps.
         const auto start = std::chrono::high_resolution_clock::now();
+
+        std::this_thread::sleep_for(sleep_time);
 
         for (int numInstructions = 0; numInstructions < 10; ++numInstructions)
         {
@@ -185,10 +202,8 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
 
         const auto end = std::chrono::high_resolution_clock::now();
 
-        const std::chrono::duration<double, std::milli> sleep_time
-                = std::chrono::milliseconds(20) - (end - start); // 2 milliseconds per instruction
-        std::this_thread::sleep_for(sleep_time);
-
+        sleep_time = std::chrono::milliseconds(20) - (end - start - sleep_time); // 2 milliseconds per instruction
+        
     }
 }
 
@@ -415,7 +430,11 @@ void Chip8::execute( const Chip8::Instruction i )
         case 0x9e:
         {
             uint8_t x = (instruction & 0xf00) >> 8u;
+
+            std::unique_lock lck{m_eventMutex};
             skp(x);
+            lck.unlock();
+
             m_PC = static_cast<Address>(m_PC + 2);
             break;
         }
@@ -423,7 +442,11 @@ void Chip8::execute( const Chip8::Instruction i )
         case 0xa1:
         {
             uint8_t x = (instruction & 0xf00) >> 8u;
+
+            std::unique_lock lck{m_eventMutex};
             sknp(x);
+            lck.unlock();
+
             m_PC = static_cast<Address>(m_PC + 2);
             break;
         }
@@ -841,10 +864,9 @@ void Chip8::ldVxDT(const uint8_t x)
 
 void Chip8::ldVxK(const uint8_t x)
 {
-    std::unique_lock keyboardOrQuitWindowMutexLock { m_keyboardOrQuitWindowMutex };
+    std::unique_lock eventMutexLock { m_eventMutex };
     // we wait for the user to either press a valid key or to close the window
-    m_keyIsPressedOrWindowClosed.wait(
-        keyboardOrQuitWindowMutexLock,
+    m_eventHappened.wait(eventMutexLock,
         [&]{ return (m_chip8PressedKey.has_value() || !m_isRunning); }
         );
 

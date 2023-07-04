@@ -105,23 +105,26 @@ protected:
     Fading m_fadingFlag; // flag saying whether we want to enable the fading effect or not
 
     std::unique_ptr<Display> m_display{};
-    std::mutex m_displayMutex{};
+    mutable std::mutex m_displayMutex{};
 
     bool m_isRunning{}; // tells when the user closed the window so that the program stops
 
     std::optional<Register> m_chip8PressedKey{};
-    std::mutex m_keyboardOrQuitWindowMutex{};
-    std::condition_variable m_keyIsPressedOrWindowClosed{};
+
+    // this mutex protects m_chip8PressedKey and m_isRunning
+    std::mutex m_eventMutex{};
+    // locks the m_eventMutex and checks that a key has been pressed or that m_isRunning is false
+    std::condition_variable m_eventHappened{};
 
     // specifies the settings with which we want to run the program
     InstructionSet m_instructionSet; // set of instructions
     DrawBehaviour m_drawBehaviour; // drawing sprites using clipping or wrapping
 
 protected:
-    // read instructions from file and copies them in m_ramPtr starting at address 0x200
+    // reads instructions from file and copies them in ram
     void readFromFile( const std::filesystem::path& path );
 
-    // runs the program that has been copied in m_ramPtr
+    // runs the program that has been copied in ram
     void run( std::future<bool>& futureDisplayInitialized );
 
 private:

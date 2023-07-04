@@ -165,25 +165,25 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
             // if the user closes the window
             case SDL_QUIT:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock {m_keyboardOrQuitWindowMutex};
+                std::unique_lock eventMutexLock {m_eventMutex};
                 m_isRunning =  false;
-                m_keyIsPressedOrWindowClosed.notify_one();
+                m_eventHappened.notify_one();
                 break;
             }
 
             case SDL_KEYDOWN:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock { m_keyboardOrQuitWindowMutex };
+                std::unique_lock eventMutexLock { m_eventMutex };
                 std::optional<SDL_Scancode> pressedKey { ev.key.keysym.scancode };
 
                 m_chip8PressedKey = getChip8Key(pressedKey);
-                m_keyIsPressedOrWindowClosed.notify_one();
+                m_eventHappened.notify_one();
                 break;
             }
 
             case SDL_KEYUP:
             {
-                std::unique_lock keyboardOrQuitWindowMutexLock { m_keyboardOrQuitWindowMutex };
+                std::unique_lock eventMutexLock { m_eventMutex };
                 std::optional<SDL_Scancode> pressedKey { };
 
                 m_chip8PressedKey = getChip8Key(pressedKey);
