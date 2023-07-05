@@ -34,10 +34,6 @@ public:
     {
         readFromFile( programPath );
 
-        std::jthread m_delayTimerThread{ [this] {this->Chip8::decreaseDelayTimer();} };
-
-        std::jthread m_soundTimerThread{ [this] {this->Chip8::decreaseSoundTimer(); } };
-
         run( futureDisplayInitialized );
     }
 

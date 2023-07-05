@@ -161,7 +161,11 @@ void Chip8::readFromFile( const std::filesystem::path& path )
 
 void Chip8::run( std::future<bool>& futureDisplayInitialized )
 {
+    // set m_isRunning to true and notify the threads of the delayTimer and of the soundTimer
+    std::unique_lock isRunningMutexLock{m_isRunningMutex};
     m_isRunning = true;
+    m_hasStartedRunning.notify_one();
+    isRunningMutexLock.unlock();
 
     futureDisplayInitialized.wait();
 

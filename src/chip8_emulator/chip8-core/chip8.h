@@ -76,11 +76,13 @@ protected:
     std::atomic< Register > m_delayTimer{}; 
     std::mutex m_delayTimerMutex{};
     std::condition_variable m_setDelayTimer{};
+    std::jthread m_delayTimerThread{ [this] {this->Chip8::decreaseDelayTimer(); } };
 
     std::atomic< Register > m_soundTimer{}; 
     std::mutex m_soundTimerMutex{};
     std::condition_variable m_setSoundTimer{};
     Sound m_sound{ "../../../sounds/beep.wav" };
+    std::jthread m_soundTimerThread{ [this] {this->Chip8::decreaseSoundTimer(); } };
 
     Address m_PC; // program counter
 
@@ -113,7 +115,9 @@ protected:
     std::unique_ptr<Display> m_display{};
     mutable std::mutex m_displayMutex{};
 
-    std::atomic<bool> m_isRunning{}; // tells when the user closed the window so that the program stops
+    bool m_isRunning{}; // tells when the user closed the window so that the program stops
+    std::mutex m_isRunningMutex{};
+    std::condition_variable m_hasStartedRunning{};
 
     std::optional<Register> m_chip8PressedKey{};
 
