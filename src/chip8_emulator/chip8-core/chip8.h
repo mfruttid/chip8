@@ -24,7 +24,10 @@
 class Chip8 {
 public:
 
-    Chip8(std::string_view flagChip8Type, std::string_view flagDrawInstruction, std::string_view flagFading);
+    Chip8(
+        std::string_view flagChip8Type, 
+        std::string_view flagDrawInstruction, 
+        std::string_view flagFading);
 
 //private:
 
@@ -73,6 +76,10 @@ protected:
 
     Address m_I{}; // 16-bits register to store memory address
 
+    bool m_isRunning{ false }; // tells when the user closed the window so that the program stops
+    std::mutex m_isRunningMutex{};
+    std::condition_variable m_hasStartedRunning{};
+
     std::atomic< Register > m_delayTimer{}; 
     std::mutex m_delayTimerMutex{};
     std::condition_variable m_setDelayTimer{};
@@ -114,10 +121,6 @@ protected:
 
     std::unique_ptr<Display> m_display{};
     mutable std::mutex m_displayMutex{};
-
-    bool m_isRunning{}; // tells when the user closed the window so that the program stops
-    std::mutex m_isRunningMutex{};
-    std::condition_variable m_hasStartedRunning{};
 
     std::optional<Register> m_chip8PressedKey{};
 
