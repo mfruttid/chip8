@@ -880,11 +880,13 @@ void Chip8::ldVxK(const uint8_t x)
 void Chip8::ldDTVx(const uint8_t x)
 {
     m_delayTimer = m_registers[x];
+    m_setDelayTimer.notify_one();
 }
 
 void Chip8::ldSTVx(const uint8_t x)
 {
     m_soundTimer = m_registers[x];
+    m_setSoundTimer.notify_one();
 }
 
 void Chip8::addI(const uint8_t x)

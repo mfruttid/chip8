@@ -74,8 +74,12 @@ protected:
     Address m_I{}; // 16-bits register to store memory address
 
     std::atomic< Register > m_delayTimer{}; 
+    std::mutex m_delayTimerMutex{};
+    std::condition_variable m_setDelayTimer{};
 
     std::atomic< Register > m_soundTimer{}; 
+    std::mutex m_soundTimerMutex{};
+    std::condition_variable m_setSoundTimer{};
     Sound m_sound{ "../../../sounds/beep.wav" };
 
     Address m_PC; // program counter
