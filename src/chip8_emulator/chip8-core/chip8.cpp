@@ -821,6 +821,7 @@ void Chip8::drw(const uint16_t xyn)
         pixelWasUnset = m_display->drwWrap(std::move(sprite), coord_x, coord_y);
     }
 
+    // the variable sprite is now invalid
     if (pixelWasUnset)
     {
         m_registers[0xf] = 1;
@@ -879,17 +880,11 @@ void Chip8::ldVxK(const uint8_t x)
 void Chip8::ldDTVx(const uint8_t x)
 {
     m_delayTimer = m_registers[x];
-
-    std::thread delayTimerThread {&Chip8::decreaseDelayTimer, std::ref(*this)};
-    delayTimerThread.detach();
 }
 
 void Chip8::ldSTVx(const uint8_t x)
 {
     m_soundTimer = m_registers[x];
-
-    std::thread soundTimerThread {&Chip8::decreaseSoundTimer, std::ref(*this)};
-    soundTimerThread.detach();
 }
 
 void Chip8::addI(const uint8_t x)

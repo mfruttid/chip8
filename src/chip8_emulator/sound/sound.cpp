@@ -1,10 +1,6 @@
 #include "sound.h"
 
-Sound::Sound(std::filesystem::path path) :
-    mDevice { },
-    mAudioSpec { },
-    mWaveStart { },
-    mWaveLength { }
+Sound::Sound(std::filesystem::path path)
 {
     // we load the WAVE file into memory, checking that this doesn't cause any error
     if ( SDL_LoadWAV( path.string().c_str(), &mAudioSpec, &mWaveStart, &mWaveLength) == NULL)

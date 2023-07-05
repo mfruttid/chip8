@@ -199,8 +199,6 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
 
 void Chip8Emulator::renderAndKeyboard( std::promise<bool>& promiseDisplayInitialized )
 {
-    SDL_Init(SDL_INIT_EVERYTHING);
-
     // set up renderer and window
     SDL_Window* window { SDL_CreateWindow(
                             "Chip8",

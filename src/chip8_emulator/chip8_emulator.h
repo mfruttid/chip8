@@ -2,6 +2,7 @@
 
 #include "chip8-core/chip8.h"
 #include <cstring>
+#include <type_traits>
 
 class Chip8Emulator : private Chip8
 {
@@ -11,7 +12,9 @@ public:
         std::string_view flagDrawInstruction, 
         std::string_view flagFading
     ) :
-    Chip8( flagChip8Type, flagDrawInstruction, flagFading ) {}
+    Chip8( flagChip8Type, flagDrawInstruction, flagFading ) {
+        SDL_Init(SDL_INIT_EVERYTHING);
+    }
 
     // updates the renderer window frame buffer to show the display of the chip8
     void renderDisplay( SDL_Renderer* renderer );
@@ -25,9 +28,16 @@ public:
     void renderAndKeyboard( std::promise<bool>& promise_display_initialized );
 
     // runs the program written in the file specified by the path
-    void runChip8Program( std::filesystem::path& programPath, std::future<bool>&& futureDisplayInitialized )
+    void loadAndRunChip8Program( 
+        std::filesystem::path& programPath, 
+        std::future<bool>&& futureDisplayInitialized )
     {
         readFromFile( programPath );
+
+        std::jthread m_delayTimerThread{ [this] {this->Chip8::decreaseDelayTimer();} };
+
+        std::jthread m_soundTimerThread{ [this] {this->Chip8::decreaseSoundTimer(); } };
+
         run( futureDisplayInitialized );
     }
 

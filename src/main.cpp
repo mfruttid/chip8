@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
         // the chip8 must run the instruction in one thread
         std::thread chip8Thread {
-            &Chip8Emulator::runChip8Program,
+            &Chip8Emulator::loadAndRunChip8Program,
             std::ref(emulator),
             std::ref(programPath),
             std::move(futureDisplayInitialized)};

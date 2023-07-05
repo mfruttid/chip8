@@ -19,7 +19,7 @@
 #include <thread>
 #include <functional>
 #include <cstring>
-
+#include <sound.h>
 
 class Chip8 {
 public:
@@ -74,7 +74,9 @@ protected:
     Address m_I{}; // 16-bits register to store memory address
 
     std::atomic< Register > m_delayTimer{}; 
+
     std::atomic< Register > m_soundTimer{}; 
+    Sound m_sound{ "../../../sounds/beep.wav" };
 
     Address m_PC; // program counter
 
@@ -107,7 +109,7 @@ protected:
     std::unique_ptr<Display> m_display{};
     mutable std::mutex m_displayMutex{};
 
-    bool m_isRunning{}; // tells when the user closed the window so that the program stops
+    std::atomic<bool> m_isRunning{}; // tells when the user closed the window so that the program stops
 
     std::optional<Register> m_chip8PressedKey{};
 
@@ -127,14 +129,14 @@ protected:
     // runs the program that has been copied in ram
     void run( std::future<bool>& futureDisplayInitialized );
 
+    void decreaseDelayTimer() { decreaseTimer(m_delayTimer, 0); }
+
+    void decreaseSoundTimer() { decreaseTimer(m_delayTimer, 1); }
+
 private:
     void execute( const Instruction i );
 
-    static void decreaseTimer( std::atomic<Register>& timer );
-
-    void decreaseDelayTimer();
-
-    void decreaseSoundTimer();
+    void decreaseTimer( std::atomic<Register>& timer, bool flagSound);
 
     // instruction 00e0
     void cls() { m_display = std::make_unique<Display>( m_fadingFlag ); }
