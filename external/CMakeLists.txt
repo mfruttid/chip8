@@ -1,3 +1,4 @@
+cmake_minimum_required( VERSION 3.26.0 )
 set( BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE )
 
 # SDL

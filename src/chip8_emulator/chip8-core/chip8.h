@@ -14,19 +14,20 @@
 #include <future>
 #include <condition_variable>
 #include <chrono>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <span>
 #include <thread>
 #include <functional>
 #include <cstring>
+#include <optional>
 #include <sound.h>
 
 class Chip8 {
 public:
 
     Chip8(
-        std::string_view flagChip8Type, 
-        std::string_view flagDrawInstruction, 
+        std::string_view flagChip8Type,
+        std::string_view flagDrawInstruction,
         std::string_view flagFading);
 
 //private:
@@ -49,7 +50,7 @@ public:
     using Address = uint16_t;
 
     // this struct could be an alias of uint16_t
-    // it is wrapped only for type safety, so that it is not possible 
+    // it is wrapped only for type safety, so that it is not possible
     // to perform integer operations on the instructions
     struct Instruction {
 
@@ -69,10 +70,10 @@ protected:
 
     class Display;
 
-    std::unique_ptr<std::array< Register, 4096 >> m_ramPtr = 
+    std::unique_ptr<std::array< Register, 4096 >> m_ramPtr =
         std::make_unique<std::array< Register, 4096>>();
 
-    std::array< Register, 16 > m_registers{}; 
+    std::array< Register, 16 > m_registers{};
 
     Address m_I{}; // 16-bits register to store memory address
 
@@ -80,22 +81,22 @@ protected:
     std::mutex m_isRunningMutex{};
     std::condition_variable m_hasStartedRunning{};
 
-    std::atomic< Register > m_delayTimer{}; 
+    std::atomic< Register > m_delayTimer{};
     std::mutex m_delayTimerMutex{};
     std::condition_variable m_setDelayTimer{};
-    std::jthread m_delayTimerThread{ [this] {this->Chip8::decreaseDelayTimer(); } };
+    std::jthread m_delayTimerThread{ [this] { this->Chip8::decreaseDelayTimer(); } };
 
-    std::atomic< Register > m_soundTimer{}; 
+    std::atomic< Register > m_soundTimer{};
     std::mutex m_soundTimerMutex{};
     std::condition_variable m_setSoundTimer{};
-    Sound m_sound{ "../../../sounds/beep.wav" };
-    std::jthread m_soundTimerThread{ [this] {this->Chip8::decreaseSoundTimer(); } };
+    Sound m_sound{ "/home/martina/Dropbox/chip8/sounds/beep.wav" };
+    std::jthread m_soundTimerThread{ [this] { this->Chip8::decreaseSoundTimer(); } };
 
     Address m_PC; // program counter
 
     uint8_t m_SP{}; // 8 bits for pointing to the topmost level of the stack
 
-    std::array< Address, 16 > m_stack{}; 
+    std::array< Address, 16 > m_stack{};
 
     // array of the hexadecimal sprites to be copied in m_ramPtr
     inline constexpr static std::array< std::array<uint8_t, 5>, 16 > m_hexadecimalSprites {{
@@ -142,7 +143,7 @@ protected:
 
     void decreaseDelayTimer() { decreaseTimer(m_delayTimer, 0); }
 
-    void decreaseSoundTimer() { decreaseTimer(m_delayTimer, 1); }
+    void decreaseSoundTimer() { decreaseTimer(m_soundTimer, 1); }
 
 private:
     void execute( const Instruction i );

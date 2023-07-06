@@ -20,22 +20,23 @@ void Chip8::decreaseTimer(std::atomic<Register>& timer, bool flagSound)
     while (m_isRunning)
     {
         // the timers of chip8 must decrease at a rate of 60 per second
-        // in order to do that, we let the delay/sound thread sleep 
+        // in order to do that, we let the delay/sound thread sleep
         // after every tic.
         std::chrono::duration<double, std::milli> sleep_time{ 0 };
-        
-        // wait until the timer is different from 0
+
+        // wait until the timer is different from 0 or the program has stopped
         timerMutexLock.lock();
-        setTimer.wait(timerMutexLock, [&] { return (timer != 0); });
+        setTimer.wait(timerMutexLock, [&] { return ((timer != 0) || !m_isRunning); });
         timerMutexLock.unlock();
 
-        if (flagSound)
-        {
-            m_sound.playSound();
-        }
 
         while (timer != 0)
         {
+            if (flagSound)
+            {
+                m_sound.playSound();
+            }
+
             // the timers of the chip8 must decrease at a rate of 60 per second
             auto start = std::chrono::high_resolution_clock::now();
 

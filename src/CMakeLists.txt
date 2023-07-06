@@ -1,3 +1,4 @@
+cmake_minimum_required( VERSION 3.26.0 )
 add_executable( main )
 set_target_properties( main PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME} )
 
@@ -36,8 +37,9 @@ target_sources( tests PRIVATE
 
 
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    
+
     set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT main )
+    set( SDL_AUDIODRIVER=directsound )
 
 endif()
 

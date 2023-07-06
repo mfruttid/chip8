@@ -2,7 +2,7 @@
 
 Chip8::Pixel Chip8::Pixel::operator^( Status s )
 {
-    return (int(m_status) ^ int(s))? Chip8::Pixel(Chip8::Status::on, m_fadingLevel) 
+    return (int(m_status) ^ int(s))? Chip8::Pixel(Chip8::Status::on, m_fadingLevel)
         : Chip8::Pixel(Chip8::Status::off, m_fadingLevel);
 }
 
@@ -135,20 +135,20 @@ void Chip8::readFromFile( const std::filesystem::path& path )
     assert(exists(path));
 
     // file must be opened in read mode and binary mode.
-    // If not opened in binary mode, the method read used below 
+    // If not opened in binary mode, the method read used below
     // will interpret the byte 1a as an end-of-file character,
     // interrupting the copy of the program in ram
     std::ifstream file { path , std::ifstream::in | std::ifstream::binary };
 
     if ( file.is_open() )
     {
-        // the program must be copied in ram starting from address 0x200, 
+        // the program must be copied in ram starting from address 0x200,
         // which is exactly the address of m_PC
         char* startProgramAddress = &(reinterpret_cast<char&>((*m_ramPtr)[m_PC]));
 
         // get length of file
         file.seekg(0, std::ios_base::end); // sets input position indicator at the end of file
-        int length = file.tellg(); // says the position of the input indicator 
+        long int length = file.tellg(); // says the position of the input indicator
         file.seekg(0, std::ios_base::beg); // resets the input indicator at the beginning of file
 
         file.read(startProgramAddress, length); // copies the file in ram
@@ -164,12 +164,12 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
     // set m_isRunning to true and notify the threads of the delayTimer and of the soundTimer
     std::unique_lock isRunningMutexLock{m_isRunningMutex};
     m_isRunning = true;
-    m_hasStartedRunning.notify_one();
+    m_hasStartedRunning.notify_all();
     isRunningMutexLock.unlock();
 
     futureDisplayInitialized.wait();
 
-    // the internal clock of the Chip8 is slower than the internal clock 
+    // the internal clock of the Chip8 is slower than the internal clock
     // of a modern computer.
     // Thus we need to let the execution thread sleep for some time in between instructions
     // (more below)
@@ -179,13 +179,13 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
     {
         // chip8 has a clock frequency of 500 Hz, so we have to let this thread sleep.
         // We use the function std::this_tread::sleep_for(sleep_time)
-        // This function grants that the thread will sleep for AT LEAST 
+        // This function grants that the thread will sleep for AT LEAST
         // sleep_time, but it could sleep a bit more, since it is not super precise.
         // In order to make the Chip8 clock more precise, I adopted two strategies:
-        // 1) sleep after executing ten instructions at a time, so that 
+        // 1) sleep after executing ten instructions at a time, so that
         // the overall sleeping time in excess is less significant;
         // 2) take into account the effective time slept in the previous iteration
-        // when computing the sleep_time. I achieved this by starting to 
+        // when computing the sleep_time. I achieved this by starting to
         // measure the time before the thread sleeps.
         const auto start = std::chrono::high_resolution_clock::now();
 
@@ -207,7 +207,7 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
         const auto end = std::chrono::high_resolution_clock::now();
 
         sleep_time = std::chrono::milliseconds(20) - (end - start - sleep_time); // 2 milliseconds per instruction
-        
+
     }
 }
 

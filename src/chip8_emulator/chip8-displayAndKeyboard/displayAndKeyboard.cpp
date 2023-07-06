@@ -166,8 +166,12 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
             case SDL_QUIT:
             {
                 std::unique_lock eventMutexLock {m_eventMutex};
+                std::unique_lock delayTimerMutexLock {m_delayTimerMutex};
+                std::unique_lock soundTimerMutexLock {m_soundTimerMutex};
                 m_isRunning =  false;
                 m_eventHappened.notify_one();
+                m_setDelayTimer.notify_one();
+                m_setSoundTimer.notify_one();
                 break;
             }
 
@@ -200,6 +204,7 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
 void Chip8Emulator::renderAndKeyboard( std::promise<bool>& promiseDisplayInitialized )
 {
     // set up renderer and window
+
     SDL_Window* window { SDL_CreateWindow(
                             "Chip8",
                             SDL_WINDOWPOS_CENTERED,

@@ -51,6 +51,9 @@ const std::array<std::string ,3> setUpSettings(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+    //SDL_setenv("SDL_AUDIODRIVER","directsound",1);
+    SDL_Init(SDL_INIT_EVERYTHING);
+
     if (argc > 1) // check there is a path for a program in input
     {
         auto settings = setUpSettings(argc, argv);
@@ -77,7 +80,7 @@ int main(int argc, char** argv)
         std::thread chip8Thread {
             &Chip8Emulator::loadAndRunChip8Program,
             std::ref(emulator),
-            std::ref(programPath),
+            std::move(programPath),
             std::move(futureDisplayInitialized)};
         chip8Thread.detach();
 
