@@ -6,7 +6,8 @@ target_compile_definitions( main PUBLIC "SDL_MAIN_HANDLED" )
 
 target_include_directories( main PUBLIC  "chip8_emulator/sound/"
                                          "chip8_emulator/chip8-core/"
-                                         "chip8_emulator/")
+                                         "chip8_emulator/"
+                                         "../external/SDL2/")
 
 target_sources( main PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"

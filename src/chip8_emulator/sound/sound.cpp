@@ -11,7 +11,7 @@ Sound::Sound(std::filesystem::path path)
     else
     {
         // we open the default audio device, checking that this doesn't cause any error
-        mDevice = SDL_OpenAudioDevice( nullptr, 0, &mAudioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE );
+        mDevice = SDL_OpenAudioDevice( nullptr, 0, &mAudioSpec, nullptr, 0 );
 
         if (mDevice == 0)
         {

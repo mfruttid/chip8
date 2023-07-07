@@ -14,7 +14,7 @@
 #include <future>
 #include <condition_variable>
 #include <chrono>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <span>
 #include <thread>
 #include <functional>
@@ -89,7 +89,7 @@ protected:
     std::atomic< Register > m_soundTimer{};
     std::mutex m_soundTimerMutex{};
     std::condition_variable m_setSoundTimer{};
-    Sound m_sound{ "/home/martina/Dropbox/chip8/sounds/beep.wav" };
+    Sound m_sound{ "C:/Users/marti/Dropbox/chip8/sounds/beep.wav" };
     std::jthread m_soundTimerThread{ [this] { this->Chip8::decreaseSoundTimer(); } };
 
     Address m_PC; // program counter
