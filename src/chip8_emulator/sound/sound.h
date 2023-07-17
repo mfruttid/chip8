@@ -7,8 +7,8 @@
 class Sound
 {
 public:
-    // loads the WAVE file in the path into memory and opens the default audio device
-    explicit Sound( std::filesystem::path path );
+    // loads the WAVE file that is stored in memory starting at address mem and opens the default audio device
+    explicit Sound(const void* mem, size_t size);
 
     ~Sound();
 

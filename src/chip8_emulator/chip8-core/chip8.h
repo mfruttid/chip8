@@ -21,6 +21,7 @@
 #include <cstring>
 #include <optional>
 #include <sound.h>
+#include <base64decode_sound.h>
 
 class Chip8 {
 public:
@@ -89,7 +90,7 @@ protected:
     std::atomic< Register > m_soundTimer{};
     std::mutex m_soundTimerMutex{};
     std::condition_variable m_setSoundTimer{};
-    Sound m_sound{ "C:/Users/marti/Dropbox/chip8/sounds/beep.wav" };
+    Sound m_sound{ Base64Sound::DECODED_SOUND.data(), Base64Sound::DECODED_SOUND_SIZE};
     std::jthread m_soundTimerThread{ [this] { this->Chip8::decreaseSoundTimer(); } };
 
     Address m_PC; // program counter

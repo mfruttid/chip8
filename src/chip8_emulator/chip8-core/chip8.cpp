@@ -113,8 +113,7 @@ Chip8::Chip8(
     m_fadingFlag{ (flagFading == "-f") ? Fading::off : Fading::on },
     m_display{ std::make_unique<Display>( m_fadingFlag ) },
     m_instructionSet{ (flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8 },
-    m_drawBehaviour{ (flagDrawInstruction == "-w") ? DrawBehaviour::wrap
-                        : DrawBehaviour::clip }
+    m_drawBehaviour{ (flagDrawInstruction == "-w") ? DrawBehaviour::wrap : DrawBehaviour::clip }
 {
     // the first addresses of the m_ramPtr are used for the hexadecimal sprites
     uint8_t ramIndex = 0;
@@ -148,7 +147,7 @@ void Chip8::readFromFile( const std::filesystem::path& path )
 
         // get length of file
         file.seekg(0, std::ios_base::end); // sets input position indicator at the end of file
-        long int length = file.tellg(); // says the position of the input indicator
+        uint64_t length = file.tellg(); // says the position of the input indicator
         file.seekg(0, std::ios_base::beg); // resets the input indicator at the beginning of file
 
         file.read(startProgramAddress, length); // copies the file in ram

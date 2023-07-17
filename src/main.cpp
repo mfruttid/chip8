@@ -1,5 +1,4 @@
 #include "chip8_emulator/chip8_emulator.h"
-#include <tuple>
 
 // sets up the arguments to construct the emulator taking them as input from the user
 // when they started the program
@@ -48,10 +47,8 @@ const std::array<std::string ,3> setUpSettings(int argc, char** argv)
     return res;
 }
 
-
 int main(int argc, char** argv)
 {
-    //SDL_setenv("SDL_AUDIODRIVER","directsound",1);
     SDL_Init(SDL_INIT_EVERYTHING);
 
     if (argc > 1) // check there is a path for a program in input

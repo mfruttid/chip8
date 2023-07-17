@@ -1,9 +1,10 @@
 #include "sound.h"
 
-Sound::Sound(std::filesystem::path path)
+Sound::Sound(const void* mem, size_t size)
 {
     // we load the WAVE file into memory, checking that this doesn't cause any error
-    if ( SDL_LoadWAV( path.string().c_str(), &mAudioSpec, &mWaveStart, &mWaveLength) == nullptr)
+    //if (SDL_LoadWAV( path.string().c_str(), 1, &mAudioSpec, &mWaveStart, &mWaveLength) == nullptr)
+    if (SDL_LoadWAV_RW(SDL_RWFromConstMem(mem, static_cast<int>(size)), 1, &mAudioSpec, &mWaveStart, &mWaveLength) == nullptr)
     {
         std::cerr << "Sound loading error: " << SDL_GetError() << "\n";
     }

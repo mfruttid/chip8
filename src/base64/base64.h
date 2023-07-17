@@ -5,9 +5,10 @@
 
 #include <vector>
 #include <string>
-typedef unsigned char BYTE;
+#include <cstdint>
 
-std::string base64_encode(BYTE const* buf, unsigned int bufLen);
-std::vector<BYTE> base64_decode(std::string const&);
+std::string base64_encode(const char* buf, unsigned int bufLen);
+
+std::vector<uint8_t> base64_decode(const char* encoded_string, size_t in_len);
 
 #endif
