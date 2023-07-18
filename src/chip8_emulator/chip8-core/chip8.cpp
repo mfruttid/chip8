@@ -837,25 +837,15 @@ void Chip8::drw(const uint16_t xyn)
 
 void Chip8::skp(const uint8_t x)
 {
-    if (m_chip8PressedKey.has_value())
+    if (m_chip8Keys[m_registers[x]])
     {
-        if (m_chip8PressedKey.value() == m_registers[x])
-        {
-            m_PC = static_cast<Address>(m_PC + 2);
-        }
+        m_PC = static_cast<Address>(m_PC + 2);
     }
 }
 
 void Chip8::sknp(const uint8_t x)
 {
-    if (m_chip8PressedKey.has_value())
-    {
-        if (m_chip8PressedKey.value() != m_registers[x])
-        {
-            m_PC = static_cast<Address>(m_PC + 2);
-        }
-    }
-    else
+    if (!m_chip8Keys[m_registers[x]])
     {
         m_PC = static_cast<Address>(m_PC + 2);
     }
@@ -871,13 +861,10 @@ void Chip8::ldVxK(const uint8_t x)
     std::unique_lock eventMutexLock { m_eventMutex };
     // we wait for the user to either press a valid key or to close the window
     m_eventHappened.wait(eventMutexLock,
-        [&]{ return (m_chip8PressedKey.has_value() || !m_isRunning); }
+        [&]{ return (m_numPressedKeys || !m_isRunning); }
         );
 
-    if (m_chip8PressedKey.has_value())
-    {
-        m_registers[x] = static_cast<Register>(m_chip8PressedKey.value());
-    }
+    m_registers[x] = findLastPressedKey();
 }
 
 void Chip8::ldDTVx(const uint8_t x)

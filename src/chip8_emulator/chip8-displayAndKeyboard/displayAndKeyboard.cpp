@@ -1,107 +1,102 @@
 #include <chip8_emulator.h>
 
-std::optional<uint8_t> Chip8Emulator::getChip8Key( std::optional<SDL_Scancode> pressedKey ) const
+uint8_t Chip8Emulator::getChip8Key(SDL_Scancode pressedKey) const
 // The keys are used to simulate the keyboard of the chip8 are the following:
 // 1 = 0x1; 2 = 0x2; 3 = 0x3; 4 = 0xc; q = 0x4; w = 0x5; e = 0x6; r = 0xd;
 // a = 0x7; s = 0x8; d = 0x9; f = 0xe; z =0xa; x = 0x0; c =0xb; v = 0xf
 // If one of the above key is pressed, then it returns the associated value,
 // otherwise it returns nullopt
 {
-    if ( pressedKey.has_value() )
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+
+    switch (pressedKey)
     {
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wswitch-enum"
-
-        switch ( pressedKey.value() )
-        {
-        case SDL_SCANCODE_1:
-        {
-            return std::optional<uint8_t>(0x1);
-        }
-
-        case SDL_SCANCODE_2:
-        {
-            return std::optional<uint8_t>(0x2);
-        }
-
-        case SDL_SCANCODE_3:
-        {
-            return std::optional<uint8_t>(0x3);
-        }
-
-        case SDL_SCANCODE_4:
-        {
-            return std::optional<uint8_t>(0xc);
-        }
-
-        case SDL_SCANCODE_Q:
-        {
-            return std::optional<uint8_t>(0x4);
-        }
-
-        case SDL_SCANCODE_W:
-        {
-            return std::optional<uint8_t>(0x5);
-        }
-
-        case SDL_SCANCODE_E:
-        {
-            return std::optional<uint8_t>(0x6);
-        }
-
-        case SDL_SCANCODE_R:
-        {
-            return std::optional<uint8_t>(0xd);
-        }
-
-        case SDL_SCANCODE_A:
-        {
-            return std::optional<uint8_t>(0x7);
-        }
-
-        case SDL_SCANCODE_S:
-        {
-            return std::optional<uint8_t>(0x8);
-        }
-
-        case SDL_SCANCODE_D:
-        {
-            return std::optional<uint8_t>(0x9);
-        }
-
-        case SDL_SCANCODE_F:
-        {
-            return std::optional<uint8_t>(0xe);
-        }
-
-        case SDL_SCANCODE_Z:
-        {
-            return std::optional<uint8_t>(0xa);
-        }
-
-        case SDL_SCANCODE_X:
-        {
-            return std::optional<uint8_t>(0x0);
-        }
-
-        case SDL_SCANCODE_C:
-        {
-            return std::optional<uint8_t>(0xb);
-        }
-
-        case SDL_SCANCODE_V:
-        {
-            return std::optional<uint8_t>(0xf);
-        }
-
-        default:
-            break;
-        }
-
-        #pragma GCC diagnostic pop
+    case SDL_SCANCODE_1:
+    {
+        return 0x1;
     }
 
-    return std::optional<uint8_t>();
+    case SDL_SCANCODE_2:
+    {
+        return 0x2;
+    }
+
+    case SDL_SCANCODE_3:
+    {
+        return 0x3;
+    }
+
+    case SDL_SCANCODE_4:
+    {
+        return 0xc;
+    }
+
+    case SDL_SCANCODE_Q:
+    {
+        return 0x4;
+    }
+
+    case SDL_SCANCODE_W:
+    {
+        return 0x5;
+    }
+
+    case SDL_SCANCODE_E:
+    {
+        return 0x6;
+    }
+
+    case SDL_SCANCODE_R:
+    {
+        return 0xd;
+    }
+
+    case SDL_SCANCODE_A:
+    {
+        return 0x7;
+    }
+
+    case SDL_SCANCODE_S:
+    {
+        return 0x8;
+    }
+
+    case SDL_SCANCODE_D:
+    {
+        return 0x9;
+    }
+
+    case SDL_SCANCODE_F:
+    {
+        return 0xe;
+    }
+
+    case SDL_SCANCODE_Z:
+    {
+        return 0xa;
+    }
+
+    case SDL_SCANCODE_X:
+    {
+        return 0x0;
+    }
+
+    case SDL_SCANCODE_C:
+    {
+        return 0xb;
+    }
+
+    case SDL_SCANCODE_V:
+    {
+        return 0xf;
+    }
+
+    default:
+        break;
+    }
+
+    #pragma GCC diagnostic pop
 }
 
 void Chip8Emulator::renderDisplay( SDL_Renderer* renderer )
@@ -178,19 +173,37 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
             case SDL_KEYDOWN:
             {
                 std::unique_lock eventMutexLock { m_eventMutex };
-                std::optional<SDL_Scancode> pressedKey { ev.key.keysym.scancode };
+                uint8_t pressedKey { getChip8Key(ev.key.keysym.scancode) };
 
-                m_chip8PressedKey = getChip8Key(pressedKey);
+                // the order of the pressed keys increases of 1
+                for (uint8_t key : m_chip8Keys)
+                {
+                    if (key)
+                    {
+                        key += 1;
+                    }
+                }
+                m_chip8Keys[pressedKey] = 1;
+                m_numPressedKeys += 1;
+
                 m_eventHappened.notify_one();
                 break;
             }
 
             case SDL_KEYUP:
             {
-                std::unique_lock eventMutexLock { m_eventMutex };
-                std::optional<SDL_Scancode> pressedKey { };
+                std::unique_lock eventMutexLock{ m_eventMutex };
+                uint8_t releasedKey{ getChip8Key(ev.key.keysym.scancode) };
 
-                m_chip8PressedKey = getChip8Key(pressedKey);
+                for (uint8_t key : m_chip8Keys)
+                {
+                    if (key > m_chip8Keys[releasedKey])
+                    {
+                        key -= 1;
+                    }
+                }
+                m_chip8Keys[releasedKey] = 0;
+                m_numPressedKeys -= 1;
                 break;
             }
 
