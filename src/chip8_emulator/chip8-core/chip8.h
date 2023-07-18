@@ -31,7 +31,7 @@ public:
         std::string_view flagDrawInstruction,
         std::string_view flagFading);
 
-//private:
+private:
 
     // some instructions differ and some programs run correctly
     // with one set of instructions and others with the other
@@ -90,7 +90,7 @@ protected:
     std::atomic< Register > m_soundTimer{};
     std::mutex m_soundTimerMutex{};
     std::condition_variable m_setSoundTimer{};
-    Sound m_sound{ Base64Sound::DECODED_SOUND.data(), Base64Sound::DECODED_SOUND_SIZE};
+    Sound m_sound{ reinterpret_cast<const void*>(Base64Sound::DECODED_SOUND.data()), Base64Sound::DECODED_SOUND_SIZE };
     std::jthread m_soundTimerThread{ [this] { this->Chip8::decreaseSoundTimer(); } };
 
     Address m_PC; // program counter

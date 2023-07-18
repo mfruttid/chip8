@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <SDL.h>
+#include <SDL_dataqueue.h>
 #include <filesystem>
 
 class Sound
@@ -12,6 +13,10 @@ public:
 
     ~Sound();
 
+    // the sound will not play for more than 8 seconds in a row without stopping
+    // i.e. by the way I implemented playSound and pauseSound, after 8 seconds
+    // of uninterrupted sound, there will be silence.
+    // But this is a safe assumption because this basically never happens in chip8 programs
     void playSound();
 
     void pauseSound();
@@ -22,6 +27,8 @@ private:
 
     // properties of the wave file loaded
     SDL_AudioSpec mAudioSpec{};
-    uint8_t* mWaveStart{};
-    uint32_t mWaveLength{};
+    uint8_t* mSoundBufferStart{};
+    uint32_t mSoundBufferLength{};
 };
+
+//inline void feedAudioDeviceCallbackFunction( void* userdata, Uint8* start, int length ){}

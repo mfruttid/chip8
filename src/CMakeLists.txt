@@ -9,7 +9,8 @@ target_include_directories( main PUBLIC  "chip8_emulator/sound/"
                                          "chip8_emulator/chip8-core/"
                                          "chip8_emulator/"
                                          "../external/SDL2/include/"
-                                         "base64/")
+                                         "base64/"
+                                         "../external/SDL2/src/")
 
 target_sources( main PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"
