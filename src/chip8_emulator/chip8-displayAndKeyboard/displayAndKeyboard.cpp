@@ -185,10 +185,6 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
 
                     m_eventHappened.notify_one();
                 }
-                else
-                {
-                    m_lastPressedKey = std::nullopt;
-                }
                 break;
             }
 
@@ -198,7 +194,6 @@ void Chip8Emulator::handleSystemEvents( SDL_Event ev )
 
                 std::unique_lock eventMutexLock{ m_eventMutex };
                 m_chip8Keys[releasedKey] = false;
-                m_lastPressedKey = std::nullopt;
                 break;
             }
 

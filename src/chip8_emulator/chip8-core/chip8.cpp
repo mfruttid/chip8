@@ -668,7 +668,7 @@ void Chip8::sub(const uint8_t xy)
 
     m_registers[x] = static_cast<Register>(val_x - val_y);
 
-    if (val_x > val_y)
+    if (val_x >= val_y)
     {
         m_registers[0xf] = 1;
     }
@@ -869,6 +869,8 @@ void Chip8::ldVxK(const uint8_t x)
     {
         m_registers[x] = m_lastPressedKey.value();
     }
+
+    // set the last pressed key to null again to ensure to wait again at the next ldVxK instruction
     m_lastPressedKey = std::nullopt;
 }
 
