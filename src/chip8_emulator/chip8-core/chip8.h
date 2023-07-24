@@ -126,11 +126,12 @@ protected:
     mutable std::mutex m_displayMutex{};
 
     // every uint8_t corresponds to a key:
-    // 0 = not pressed
-    // not 0 = pressed 
-    // the number indicates the order with which the keys have been pressed
-    std::array<std::atomic<uint8_t>, 16> m_chip8Keys{};
-    std::atomic<uint8_t> m_numPressedKeys{};
+    // false = not pressed
+    // true = pressed
+    std::array<std::atomic<bool>, 16> m_chip8Keys{};
+
+    // key used for instruction ldVxK
+    std::optional<Register> m_lastPressedKey{};
 
     // this mutex protects m_chip8PressedKey and m_isRunning
     std::mutex m_eventMutex{};
@@ -156,17 +157,6 @@ private:
     void execute( const Instruction i );
 
     void decreaseTimer( std::atomic<Register>& timer, bool flagSound);
-
-    Register findLastPressedKey()
-    {
-        for (size_t key=0; key<0xf; ++key)
-        {
-            if (m_chip8Keys[key] == 1)
-            {
-                return key;
-            }
-        }
-    }
 
     // instruction 00e0
     void cls() { m_display = std::make_unique<Display>( m_fadingFlag ); }

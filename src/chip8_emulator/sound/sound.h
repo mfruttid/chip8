@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <SDL.h>
-#include <SDL_dataqueue.h>
 #include <filesystem>
 
 class Sound

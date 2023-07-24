@@ -476,6 +476,7 @@ void Chip8::execute( const Chip8::Instruction i )
 
         case 0x0a:
         {
+            //m_finishedInstructionldVxK = false;
             uint8_t x = (instruction & 0xf00) >> 8u;
             ldVxK(x);
             m_PC = static_cast<Address>(m_PC + 2);
@@ -861,10 +862,14 @@ void Chip8::ldVxK(const uint8_t x)
     std::unique_lock eventMutexLock { m_eventMutex };
     // we wait for the user to either press a valid key or to close the window
     m_eventHappened.wait(eventMutexLock,
-        [&]{ return (m_numPressedKeys || !m_isRunning); }
+        [&]{ return (m_lastPressedKey.has_value() || !m_isRunning); }
         );
 
-    m_registers[x] = findLastPressedKey();
+    if (m_lastPressedKey.has_value())
+    {
+        m_registers[x] = m_lastPressedKey.value();
+    }
+    m_lastPressedKey = std::nullopt;
 }
 
 void Chip8::ldDTVx(const uint8_t x)

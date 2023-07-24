@@ -37,6 +37,6 @@ public:
 
     // legend between the keyboard of the computer and the virtual keyboard of the chip8
     // it's scancode-based and not keycode-based
-    uint8_t getChip8Key( SDL_Scancode pressedKey ) const;
+    std::optional<uint8_t> getChip8Key( SDL_Scancode pressedKey ) const;
 };
 
