@@ -10,7 +10,8 @@ target_include_directories( main PUBLIC  "chip8_emulator/sound/"
                                          "chip8_emulator/"
                                          "../external/SDL2/include/"
                                          "base64/"
-                                         "../external/SDL2/src/")
+                                         "../external/SDL2/src/"
+                                         "chip8_emulator/read_from_file/")
 
 target_sources( main PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"
@@ -26,16 +27,21 @@ target_sources( main PRIVATE
     "base64/base64.cpp"
     "base64/base64.h"
     "chip8_emulator/sound/encoded_sound.inl"
+    "chip8_emulator/read_from_file/read_from_file.cpp"
+    "chip8_emulator/read_from_file/read_from_file.h"
     )
 
 add_executable( code_sound )
 set_target_properties( code_sound PROPERTIES OUTPUT_NAME code_sound.bin )
 
-target_include_directories( code_sound PUBLIC "base64/")
+target_include_directories( code_sound PUBLIC "base64/"
+                                              "chip8_emulator/read_from_file/")
 target_sources( code_sound PRIVATE
     "chip8_emulator/sound/base64encode_sound.cpp"
     "base64/base64.cpp"
     "base64/base64.h"
+    "chip8_emulator/read_from_file/read_from_file.cpp"
+    "chip8_emulator/read_from_file/read_from_file.h"
     )
 
 
@@ -47,7 +53,8 @@ target_compile_definitions( tests PUBLIC "SDL_MAIN_HANDLED" )
 target_include_directories( tests PUBLIC "chip8_emulator/sound/"
                                          "chip8_emulator/chip8-core/"
                                          "chip8_emulator/"
-                                         "base64")
+                                         "base64"
+                                         "chip8_emulator/read_from_file/")
 target_sources( tests PRIVATE
     "chip8_emulator/chip8-core/chip8.cpp"
     "../tests/test.cpp"
@@ -62,6 +69,8 @@ target_sources( tests PRIVATE
     "base64/base64.cpp"
     "base64/base64.h"
     "chip8_emulator/sound/encoded_sound.inl"
+    "chip8_emulator/read_from_file/read_from_file.cpp"
+    "chip8_emulator/read_from_file/read_from_file.h"
     )
 
 

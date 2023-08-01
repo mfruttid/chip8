@@ -7,21 +7,21 @@
 void Chip8::decreaseTimer(std::atomic<Register>& timer, bool flagSound)
 {
     // wait for the chip8 to start running
-    std::unique_lock isRunningMutexLock{m_isRunningMutex};
+    std::unique_lock isRunningMutexLock {m_isRunningMutex};
     m_hasStartedRunning.wait(isRunningMutexLock, [&] { return m_isRunning; });
     isRunningMutexLock.unlock();
 
     // initialize the appropriate (delay or sound) mutex and condition variables
     std::mutex& timerMutex = (flagSound) ? m_soundTimerMutex : m_delayTimerMutex;
     std::condition_variable& setTimer = (flagSound) ? m_setSoundTimer : m_setDelayTimer;
-    std::unique_lock timerMutexLock{timerMutex};
+    std::unique_lock timerMutexLock {timerMutex};
     timerMutexLock.unlock();
 
     while (m_isRunning)
     {
         // the timers of chip8 must decrease at a rate of 60 per second
         // in order to do that, we let the delay/sound thread sleep
-        // after every tic.
+        // after every tick.
         std::chrono::duration<double, std::milli> sleep_time{ 0 };
 
         // wait until the timer is different from 0 or the program has stopped
@@ -29,12 +29,9 @@ void Chip8::decreaseTimer(std::atomic<Register>& timer, bool flagSound)
         setTimer.wait(timerMutexLock, [&] { return ((timer != 0) || !m_isRunning); });
         timerMutexLock.unlock();
 
-        if (timer)
+        if (timer && flagSound)
         {
-            if (flagSound)
-            {
-                m_sound.playSound();
-            }
+            m_playSoundCallback();
         }
 
         while (timer != 0)
@@ -52,7 +49,7 @@ void Chip8::decreaseTimer(std::atomic<Register>& timer, bool flagSound)
 
         if (flagSound)
         {
-            m_sound.pauseSound();
+            m_pauseSoundCallback();
         }
     }
 }

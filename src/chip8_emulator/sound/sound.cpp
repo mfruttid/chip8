@@ -2,41 +2,100 @@
 
 Sound::Sound(const void* mem, size_t size)
 {
-    //mAudioSpec.callback = &feedAudioDeviceCallbackFunction;
-    //mAudioSpec.userdata = this;
+    if (!mem)
+    {
+        return;
+    }
+
+    auto* p_fromConstMem = SDL_RWFromConstMem(mem, static_cast<int>(size));
+    if (!p_fromConstMem)
+    {
+        std::cerr << "Sound loading error: " << SDL_GetError() << "\n";
+        return;
+    }
+
+    auto* p_audioSpec = SDL_LoadWAV_RW(
+        p_fromConstMem,
+        1,
+        &m_audioSpec,
+        &m_soundBufferStart,
+        &m_soundBufferLength);
+
     // load the sound buffer into memory of device, checking that this doesn't cause any error
-    if (SDL_LoadWAV_RW(SDL_RWFromConstMem(mem, static_cast<int>(size)), 1, &mAudioSpec, 
-                                            &mSoundBufferStart, &mSoundBufferLength) == nullptr)
+    if (!p_audioSpec)
     {
         std::cerr << "Sound loading error: " << SDL_GetError() << "\n";
     }
-
     else
     {
         // we open the default audio device, checking that this doesn't cause any error
-        mDevice = SDL_OpenAudioDevice(nullptr, 0, &mAudioSpec, nullptr, 0);
+        m_device = SDL_OpenAudioDevice(nullptr, 0, &m_audioSpec, nullptr, 0);
 
-        if (mDevice == 0)
+        if (m_device == 0)
         {
             std::cerr << "Sound device error: " << SDL_GetError() << "\n";
         }
     }
 }
 
+Sound::Sound(Sound&& sound)
+: m_device {sound.m_device},
+  m_audioSpec {sound.m_audioSpec},
+  m_soundBufferStart {sound.m_soundBufferStart},
+  m_soundBufferLength {sound.m_soundBufferLength}
+{
+    // this is necessary so that the destructor of Sound
+    // doesn't close the device when sound is deleted
+    sound.m_device = 0;
+    sound.m_soundBufferStart = nullptr;
+}
+
 Sound::~Sound()
 {
-    SDL_FreeWAV(mSoundBufferStart);
-    SDL_CloseAudioDevice(mDevice);
+    if (m_soundBufferStart)
+    {
+        SDL_FreeWAV(m_soundBufferStart);
+    }
+    if (m_device)
+    {
+        SDL_CloseAudioDevice(m_device);
+    }
+}
+
+Sound& Sound::operator=(Sound&& sound)
+{
+    m_device = sound.m_device;
+    m_audioSpec = std::move(sound.m_audioSpec);
+    m_soundBufferStart = sound.m_soundBufferStart;
+    m_soundBufferLength = std::move(sound.m_soundBufferLength);
+
+    // this is necessary so that the destructor of Sound
+    // doesn't close the device when sound is deleted
+    sound.m_device = 0;
+    sound.m_soundBufferStart = nullptr;
+
+    return *this;
+}
+
+bool Sound::isValid()
+{
+    return m_device && m_soundBufferLength && m_soundBufferStart;
 }
 
 void Sound::playSound()
 {
-    SDL_QueueAudio(mDevice, mSoundBufferStart, mSoundBufferLength);
-    SDL_PauseAudioDevice(mDevice, 0); // unpauses the audio device
+    if (isValid())
+    {
+        SDL_QueueAudio(m_device, m_soundBufferStart, m_soundBufferLength);
+        SDL_PauseAudioDevice(m_device, 0); // unpauses the audio device
+    }
 }
 
 void Sound::pauseSound()
 {
-    SDL_PauseAudioDevice(mDevice, 1);
-    SDL_ClearQueuedAudio(mDevice);
+    if (isValid())
+    {
+        SDL_PauseAudioDevice(m_device, 1);
+        SDL_ClearQueuedAudio(m_device);
+    }
 }

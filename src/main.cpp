@@ -2,20 +2,21 @@
 
 // sets up the arguments to construct the emulator taking them as input from the user
 // when they started the program
-const std::array<std::string ,3> setUpSettings(int argc, char** argv)
+const std::array<std::string ,3> processArguments(int argc, char** argv)
 {
+    // default options
     std::string flagChip8 {"-chip8"}; // default is chip8 instructions
     std::string flagDrawInstruction {"-clipping"}; // default is clipping
     std::string flagFading {"-fading"}; // default is fading simulating the phosphorus screen
 
-    for ( int i { 0 }; i < argc; ++i )
+    for (int i {0}; i<argc; ++i)
     {
-        if ( argv[i][0] == '-' )
+        if (argv[i][0] == '-')
         {
-            switch ( argv[i][1] )
+            switch (argv[i][1])
             {
-            case 'f':
-                flagFading = "-f"; // flag for flickering pixels
+            case 'n':
+                flagFading = "-n"; // flag for flickering pixels
                 break;
 
             case 's':
@@ -34,11 +35,12 @@ const std::array<std::string ,3> setUpSettings(int argc, char** argv)
                 std::cout <<
                     "-w : the drawing instruction wraps the sprites (default: the drawing instruction clips the sprites)" << '\n';
                 std::cout <<
-                    "-f : disables the fading effect, making the pixels flicker " <<
+                    "-n : disables the fading effect, making the pixels flicker " <<
                     "(default: unset pixels slowly fade to black, simulating the old phosphorus screens effect)" << '\n';
                 break;
 
             default:
+                std::cout << "Invalid argument" << "\n";
                 break;
             }
         }
@@ -47,13 +49,22 @@ const std::array<std::string ,3> setUpSettings(int argc, char** argv)
     return res;
 }
 
+
+/*
+    The main structure of this program is the following:
+    - in the main thread the display and keyboard are handled;
+    - the main thread spawns two more threads (for delay and sound timer)
+      at the creation of the Chip8Emulator;
+      these two threads are joined at the distruction of the emulator;
+    - the main thread spawns another thread when executing the member function
+      runEmulator of Chip8Emulator: this last thread runs the instructions of
+      the Chip8 rom and is detached.
+*/
 int main(int argc, char** argv)
 {
-    SDL_Init(SDL_INIT_EVERYTHING);
-
     if (argc > 1) // check there is a path for a program in input
     {
-        auto settings = setUpSettings(argc, argv);
+        auto settings = processArguments(argc, argv);
 
         // if the first argument is "-h", then we print the useful info during setUpSetting
         // so we have nothing left to do
@@ -62,27 +73,20 @@ int main(int argc, char** argv)
             return 0;
         }
 
-        std::filesystem::path programPath { argv[1] };
+        std::filesystem::path programPath {argv[1]};
 
         const std::string_view flagChip8 = settings[0];
         const std::string_view flagDrawInstruction = settings[1];
         const std::string_view fadingFlag = settings[2];
 
-        Chip8Emulator emulator{ flagChip8, flagDrawInstruction, fadingFlag };
+        Chip8Emulator emulator{flagChip8, flagDrawInstruction, fadingFlag};
 
-        std::promise<bool> promiseDisplayInitialized;
-        std::future<bool> futureDisplayInitialized = promiseDisplayInitialized.get_future();
-
-        // the chip8 must run the instruction in one thread
-        std::thread chip8Thread {
-            &Chip8Emulator::loadAndRunChip8Program,
-            std::ref(emulator),
-            std::move(programPath),
-            std::move(futureDisplayInitialized)};
-        chip8Thread.detach();
-
-        // the main thread shows and updates the window and updates the pressed keys in the meantime
-        emulator.renderAndKeyboard(promiseDisplayInitialized);
+        emulator.runEmulator(std::move(programPath));
     }
 
+    else
+    {
+        std::cout << "Pass the path of a Chip8 rom as argument." << "\n";
+        return 0;
+    }
 }

@@ -1,4 +1,4 @@
-constexpr size_t ENCODED_SOUND_FILE_SIZE{470509};
+constexpr size_t ENCODED_SOUND_FILE_SIZE {470509};
 
 const char ENCODED_SOUND[ENCODED_SOUND_FILE_SIZE] = // unfortunately the string exceeds the maximal length for constexpr evaluation
 "UklGRmhiBQBXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAanVuaxwAAAAAAAAA"

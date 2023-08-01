@@ -1,6 +1,7 @@
 #include "chip8.h"
+#include <read_from_file.h>
 
-Chip8::Pixel Chip8::Pixel::operator^( Status s )
+Chip8::Pixel Chip8::Pixel::operator^(Status s)
 {
     return (int(m_status) ^ int(s))? Chip8::Pixel(Chip8::Status::on, m_fadingLevel)
         : Chip8::Pixel(Chip8::Status::off, m_fadingLevel);
@@ -10,7 +11,7 @@ void Chip8::Display::decreaseFadingLevel()
 {
     for (std::array<Pixel, DISPLAY_WIDTH>& row : m_frame)
     {
-        for ( Pixel& pixel : row )
+        for (Pixel& pixel : row)
         {
             if (pixel.m_fadingLevel > 0 && pixel.m_status == Status::off)
             {
@@ -22,7 +23,7 @@ void Chip8::Display::decreaseFadingLevel()
 
 // drwWrap takes ownership of the sprite because it modifies it
 // and it shouldn't be used again after the modifications
-bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y )
+bool Chip8::Display::drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
 
@@ -41,9 +42,9 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
         {
             size_t columnOffset = (x + column) % 64;
 
-            Pixel& pixel { m_frame[rowOffset][columnOffset] };
+            Pixel& pixel {m_frame[rowOffset][columnOffset]};
 
-            bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
+            bool pixelWasOn = (pixel.m_status == Chip8::Status::on);
 
             pixel = pixel ^ static_cast<Status>(sprite[row] & 0b1);
             sprite[row] = sprite[row] >> 1u;
@@ -55,7 +56,7 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
 
             if (!res)
             {
-                res = pixelWasOn && ( pixel.m_status == Chip8::Status::off );
+                res = pixelWasOn && (pixel.m_status == Chip8::Status::off);
             }
         }
     }
@@ -64,7 +65,7 @@ bool Chip8::Display::drwWrap( std::vector<uint8_t>&& sprite, const uint8_t x, co
 
 // drwClip takes ownership of the sprite because it modifies it
 // and it shouldn't be used again after the modifications
-bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y )
+bool Chip8::Display::drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y)
 {
     bool res = false;
 
@@ -78,48 +79,64 @@ bool Chip8::Display::drwClip( std::vector<uint8_t>&& sprite, const uint8_t x, co
     int maxWidth = std::min(63, x+7); // necessary for clipping the sprite if the width exceeds the display
     int maxHeight = std::min(32-y, static_cast<int>(size)); // necessary for clipping the sprite if the height exceeds the display
 
-    for ( int offset = 0; offset < maxHeight; ++offset )
+    for (int offset = 0; offset < maxHeight; ++offset)
     {
         int row = y + offset;
-        for ( int column = x; column <= maxWidth; ++column )
+        for (int column = x; column <= maxWidth; ++column)
         {
-            Pixel& pixel { m_frame[row][column] };
+            Pixel& pixel {m_frame[row][column]};
 
-            bool pixelWasOn = ( pixel.m_status == Chip8::Status::on );
+            bool pixelWasOn = (pixel.m_status == Chip8::Status::on);
 
-            pixel = pixel ^ static_cast<Status>( ( sprite[offset] & 0b1000'0000 ) >> 7u );
-            sprite[offset] = static_cast<uint8_t>( sprite[offset] << 1u );
+            pixel = pixel ^ static_cast<Status>((sprite[offset] & 0b1000'0000) >> 7u);
+            sprite[offset] = static_cast<uint8_t>(sprite[offset] << 1u);
 
-            if ( pixelWasOn && pixel.m_status == Status::off )
+            if (pixelWasOn && pixel.m_status == Status::off)
             {
                 pixel.m_fadingLevel = m_maximalFading;
             }
 
             if (!res)
             {
-                res = pixelWasOn && ( pixel.m_status == Chip8::Status::off );
+                res = pixelWasOn && (pixel.m_status == Chip8::Status::off);
             }
         }
     }
     return res;
 }
 
+// The Chip8 constructor spawns two threads: one for the delay timer and one for the sound timer.
+// The class Chip8 has two data members m_delayTimerThread and m_soundTimerThread that are handles
+// for these threads.
+// These two threads communicate with the chip8 through some condition variables
+// which are also data members of Chip8: m_hasStartedRunning, m_setDelayTimer and m_setSoundTimer.
+// First m_delayTimerThread and m_soundTimerThread use m_hasStartedRunning to check
+// that m_isRunning is set to true (so that the chip8 has started running the rom)
+// and then they continue waiting for the timer to be set through m_setDelayTimer and m_setSoundTimer.
+// These two condition variables are notified by the thread where the chip8 emulator is running.
+// The class Chip8 has another condition variable: m_eventHappened that waits for a keyboard event or
+// a quit event to happen. This condition variable is notified by the main thread,
+// where the keyboard and display are handled.
 Chip8::Chip8(
     std::string_view flagChip8Type,
     std::string_view flagDrawInstruction,
-    std::string_view flagFading
-) :
-    m_PC{ Address(0x200) }, // the first 0x200 addresses in m_ramPtr are not used by the program
-    m_fadingFlag{ (flagFading == "-f") ? Fading::off : Fading::on },
-    m_display{ std::make_unique<Display>( m_fadingFlag ) },
-    m_instructionSet{ (flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8 },
-    m_drawBehaviour{ (flagDrawInstruction == "-w") ? DrawBehaviour::wrap : DrawBehaviour::clip }
+    std::string_view flagFading,
+    std::function<void()> playSoundCallback,
+    std::function<void()> pauseSoundCallback
+    ) :
+    m_playSoundCallback {playSoundCallback},
+    m_pauseSoundCallback {pauseSoundCallback},
+    m_PC {Address(0x200)}, // the first 0x200 addresses in m_ramPtr are not used by the program
+    m_fadingFlag {(flagFading == "-n") ? Fading::off : Fading::on},
+    m_display {std::make_unique<Display>(m_fadingFlag)},
+    m_instructionSet {(flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8},
+    m_drawBehaviour {(flagDrawInstruction == "-w") ? DrawBehaviour::wrap : DrawBehaviour::clip}
 {
     // the first addresses of the m_ramPtr are used for the hexadecimal sprites
     uint8_t ramIndex = 0;
     for (uint8_t u = 0x0; u <= 0xf; ++u)
     {
-        std::array<uint8_t, 5> hexadecimalSprite { m_hexadecimalSprites[u] };
+        std::array<uint8_t, 5> hexadecimalSprite {m_hexadecimalSprites[u]};
 
         for (uint8_t line : hexadecimalSprite)
         {
@@ -129,39 +146,17 @@ Chip8::Chip8(
     }
 }
 
-void Chip8::readFromFile( const std::filesystem::path& path )
+void Chip8::readFromFile(const std::filesystem::path& path)
 {
-    assert(exists(path));
+    char* startProgramAddress = &(reinterpret_cast<char&>((*m_ramPtr)[m_PC]));
 
-    // file must be opened in read mode and binary mode.
-    // If not opened in binary mode, the method read used below
-    // will interpret the byte 1a as an end-of-file character,
-    // interrupting the copy of the program in ram
-    std::ifstream file { path , std::ifstream::in | std::ifstream::binary };
-
-    if ( file.is_open() )
-    {
-        // the program must be copied in ram starting from address 0x200,
-        // which is exactly the address of m_PC
-        char* startProgramAddress = &(reinterpret_cast<char&>((*m_ramPtr)[m_PC]));
-
-        // get length of file
-        file.seekg(0, std::ios_base::end); // sets input position indicator at the end of file
-        uint64_t length = file.tellg(); // says the position of the input indicator
-        file.seekg(0, std::ios_base::beg); // resets the input indicator at the beginning of file
-
-        file.read(startProgramAddress, length); // copies the file in ram
-    }
-    else
-    {
-        std::cout << "Unable to open file.\n";
-    }
+    copyFromBinaryFile(path, startProgramAddress);
 }
 
-void Chip8::run( std::future<bool>& futureDisplayInitialized )
+void Chip8::run(std::future<bool>&& futureDisplayInitialized)
 {
     // set m_isRunning to true and notify the threads of the delayTimer and of the soundTimer
-    std::unique_lock isRunningMutexLock{m_isRunningMutex};
+    std::unique_lock isRunningMutexLock {m_isRunningMutex};
     m_isRunning = true;
     m_hasStartedRunning.notify_all();
     isRunningMutexLock.unlock();
@@ -172,7 +167,7 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
     // of a modern computer.
     // Thus we need to let the execution thread sleep for some time in between instructions
     // (more below)
-    std::chrono::duration<double, std::milli> sleep_time{ 0 };
+    std::chrono::duration<double, std::milli> sleep_time {0};
 
     while (m_isRunning)
     {
@@ -198,7 +193,7 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
 
             uint16_t byte2 = static_cast<uint16_t>((*m_ramPtr)[m_PC+1]);
 
-            Chip8::Instruction instruction { static_cast<uint16_t>(byte1 | byte2) };
+            Chip8::Instruction instruction {static_cast<uint16_t>(byte1 | byte2)};
 
             execute(instruction);
         }
@@ -210,7 +205,7 @@ void Chip8::run( std::future<bool>& futureDisplayInitialized )
     }
 }
 
-void Chip8::execute( const Chip8::Instruction i )
+void Chip8::execute(const Chip8::Instruction i)
 {
     uint16_t instruction = i.m_inst;
 
@@ -571,7 +566,7 @@ void Chip8::se(const uint16_t xkk)
 {
     uint8_t x = (xkk & 0xf00) >> 8u; // leftmost 4 bits of xkk
     uint8_t kk = static_cast<uint8_t>(xkk & 0xff); // rightmost 8 bits of xkk
-    if ( m_registers[x] == kk )
+    if (m_registers[x] == kk)
     {
         m_PC = static_cast<Address>(m_PC + 2);
     }
@@ -644,11 +639,9 @@ void Chip8::add(const uint8_t xy)
     uint8_t x = (xy & 0xf0) >> 4u;
     uint8_t y = xy & 0xf;
 
-    uint8_t sumRegisters = static_cast<uint8_t>(m_registers[x] + m_registers[y]);
+    m_registers[x] = static_cast<uint8_t>(m_registers[x] + m_registers[y]);
 
-    m_registers[x] = sumRegisters;
-
-    if (sumRegisters < m_registers[y])
+    if (m_registers[x] < m_registers[y])
     {
         m_registers[0xf] = 1;
     }
@@ -788,7 +781,7 @@ void Chip8::rnd(const uint16_t xkk)
     // generator and distribution are static because they are expensive to create
     // and because otherwise they would generate always the same number,
     // as we are initializing the generator with the default seed
-    static std::mt19937 generator { std::random_device{}() };
+    static std::mt19937 generator {std::random_device{}()};
     static std::uniform_int_distribution<> distribution(0, 255);
     uint8_t randomNumber = static_cast<uint8_t>(distribution(generator));
 
@@ -808,7 +801,7 @@ void Chip8::drw(const uint16_t xyn)
     uint8_t coord_y = m_registers[y] % 32;
 
     std::vector<uint8_t> sprite;
-    for (int i=m_I; i<m_I+n; ++i)
+    for (int i = m_I; i < m_I+n; ++i)
     {
         sprite.emplace_back((*m_ramPtr)[i]);
     }
@@ -859,7 +852,7 @@ void Chip8::ldVxDT(const uint8_t x)
 
 void Chip8::ldVxK(const uint8_t x)
 {
-    std::unique_lock eventMutexLock { m_eventMutex };
+    std::unique_lock eventMutexLock {m_eventMutex};
     // we wait for the user to either press a valid key or to close the window
     m_eventHappened.wait(eventMutexLock,
         [&]{ return (m_lastPressedKey.has_value() || !m_isRunning); }

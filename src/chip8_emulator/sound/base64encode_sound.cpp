@@ -6,41 +6,24 @@
 #include <iostream>
 #include <cstdint>
 #include <iterator>
+#include <read_from_file.h>
 
 std::vector<char> readBynary(std::filesystem::path& soundPath)
 {
-	assert(std::filesystem::exists(soundPath));
-
-    // file must be opened in read mode and binary mode.
-    // If not opened in binary mode, the method read used below
-    // will interpret the byte 1a as an end-of-file character,
-    // interrupting the copy of the file
-    std::ifstream soundFile { soundPath, std::ifstream::in | std::ifstream::binary };
-
     std::vector<char> res;
-    
-    if (soundFile.is_open())
-    {
-        // the following is the best way I found to copy the soundFile in the vector 
-        // without skipping white spaces
-        soundFile.seekg(0);
-        char temp;
-        while (soundFile.read(&temp, sizeof(temp)))
-        {
-            res.push_back(temp);
-        }
-    }
-    else
-    {
-        std::cout << "Unable to open file.\n";
-    }
+
+    size_t fileLength {openAndComputeLength(soundPath)};
+    res.reserve(fileLength);
+
+    copyFromBinaryFile(soundPath, res.data());
+
     return res;
 }
 
 std::string base64EncodeSound()
 {
-    std::filesystem::path soundPath{"C:/cpp/chip8/sounds/beep.wav"}; // non-portable but it doesn't matter
-    std::vector<char> soundVector{readBynary(soundPath)};
+    std::filesystem::path soundPath {"C:/cpp/chip8/sounds/beep.wav"}; // non-portable but it doesn't matter
+    std::vector<char> soundVector {readBynary(soundPath)};
 
     return base64_encode(&soundVector[0], soundVector.size());
 }

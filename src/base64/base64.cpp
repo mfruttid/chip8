@@ -1,6 +1,11 @@
 #include "base64.h"
 #include <iostream>
 
+/*
+    The following code is copied by https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
+    slightly modified.
+*/
+
 static constexpr std::string_view base64_chars{
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
