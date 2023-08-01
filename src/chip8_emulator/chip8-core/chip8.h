@@ -1,29 +1,20 @@
 #pragma once
 
-#include <iostream>
 #include <array>
-#include <string>
-#include <string_view>
-#include <fstream>
 #include <filesystem>
-#include <cassert>
-#include <vector>
-#include <random>
-#include <ranges>
-#include <stack>
 #include <mutex>
 #include <future>
 #include <condition_variable>
-#include <chrono>
-#include <SDL.h>
-#include <span>
 #include <thread>
-#include <functional>
-#include <cstring>
 #include <optional>
-#include <sound.h>
-#include <base64decode_sound.h>
+#include <vector>
 
+/*
+    The class Chip8 is a simulator for chip8 and it is supposed to be extended by an emulator.
+    More precisely: you can run a chip8 rom on this simulator and it will run correctly simulating
+    the behavioiour of a chip8 machine, but in order to be able to see the display,
+    hear the sound and enter keyboard input, you need to extend this class with a Chip8Emulator
+*/
 class Chip8 {
 
 private:
@@ -49,11 +40,9 @@ private:
     // it is wrapped only for type safety, so that it is not possible
     // to perform integer operations on the instructions
     struct Instruction {
-
         explicit Instruction(const uint16_t i) : m_inst {i} {}
 
         uint16_t m_inst;
-
     };
 
     // array of the hexadecimal sprites to be copied in m_ramPtr
@@ -83,34 +72,7 @@ public:
     enum class Status {off, on};
     enum class Fading {on, off};
 
-    std::unique_ptr<std::array<Register, 4096>> m_ramPtr =
-        std::make_unique<std::array< Register, 4096>>();
-
-    std::array<Register, 16> m_registers {};
-
-    Address m_I {}; // 16-bits register to store memory address
-
     bool m_isRunning {false}; // tells when the user closed the window so that the program stops
-    std::mutex m_isRunningMutex {};
-    std::condition_variable m_hasStartedRunning {};
-
-    std::atomic<Register> m_delayTimer {};
-    std::mutex m_delayTimerMutex {};
-    std::condition_variable m_setDelayTimer {}; // waits for the delay time to be non zero
-    std::jthread m_delayTimerThread {[this] { this->Chip8::decreaseDelayTimer(); }};
-
-    std::atomic<Register> m_soundTimer {};
-    std::mutex m_soundTimerMutex {};
-    std::condition_variable m_setSoundTimer {}; // waits for the sound timer to be non zero
-    std::jthread m_soundTimerThread {[this] { this->Chip8::decreaseSoundTimer(); }};
-    std::function<void()> m_playSoundCallback;
-    std::function<void()> m_pauseSoundCallback;
-
-    Address m_PC; // program counter
-
-    uint8_t m_SP {}; // 8 bits for pointing to the topmost level of the stack
-
-    std::array<Address, 16> m_stack {};
 
     Fading m_fadingFlag; // flag saying whether we want to enable the fading effect or not
 
@@ -130,9 +92,40 @@ public:
     // locks the m_eventMutex and checks that a key has been pressed or that m_isRunning is false
     std::condition_variable m_eventHappened {};
 
+    std::mutex m_delayTimerMutex {};
+    std::condition_variable m_setDelayTimer {}; // checks if the delay timer is non zero or chip8 is not running anymore
+
+    std::mutex m_soundTimerMutex {};
+    std::condition_variable m_setSoundTimer {}; // checks if the sound timer is non zero or chip8 is not running anymore
+    std::function<void()> m_playSoundCallback; // callback function to play sound
+    std::function<void()> m_pauseSoundCallback; // callback function to pause sound
+
+private:
     // specifies the settings with which we want to run the program
     InstructionSet m_instructionSet; // set of instructions
     DrawBehaviour m_drawBehaviour; // drawing sprites using clipping or wrapping
+
+    std::unique_ptr<std::array<Register, 4096>> m_ramPtr =
+    std::make_unique<std::array< Register, 4096>>();
+
+    std::array<Register, 16> m_registers {};
+
+    Address m_I {}; // 16-bits register to store memory address
+
+    std::mutex m_isRunningMutex {};
+    std::condition_variable m_hasStartedRunning {}; // checks if m_isRunning is true
+
+    std::atomic<Register> m_delayTimer {};
+    std::jthread m_delayTimerThread {[this] { this->Chip8::decreaseDelayTimer(); }};
+
+    std::atomic<Register> m_soundTimer {};
+    std::jthread m_soundTimerThread {[this] { this->Chip8::decreaseSoundTimer(); }};
+
+    Address m_PC; // program counter
+
+    uint8_t m_SP {}; // 8 bits for pointing to the topmost level of the stack
+
+    std::array<Address, 16> m_stack {};
 
 public:
 
@@ -262,14 +255,8 @@ private:
     void ldVxI(const uint8_t x);
 };
 
-struct Chip8::Pixel {
-    constexpr Pixel() : m_status {Status::off}, m_fadingLevel {0} {}
-    Pixel(Status s, int32_t fadinglev) : m_status {s}, m_fadingLevel {fadinglev} {}
-
-    // xor between pixel and status where status = off = 0 or on = 1
-    // keeps the same fading level
-    Chip8::Pixel operator^(Status s);
-
+class Chip8::Pixel {
+public:
     // says if a pixel is on or off
     Chip8::Status m_status;
 
@@ -278,9 +265,34 @@ struct Chip8::Pixel {
     // The fadingLevel takes care of how much the pixel is faded:
     // the higher it is, the lighter the color of the pixel
     int32_t m_fadingLevel;
+
+    constexpr Pixel() : m_status {Status::off}, m_fadingLevel {0} {}
+    Pixel(Status s, int32_t fadinglev) : m_status {s}, m_fadingLevel {fadinglev} {}
+
+private:
+    // xor between pixel and status where status = off = 0 or on = 1
+    // keeps the same fading level
+    Chip8::Pixel operator^(Status s);
+
+    friend Chip8::Display;
 };
 
 class Chip8::Display {
+public:
+    static constexpr int DISPLAY_WIDTH {64};
+    static constexpr int DISPLAY_HEIGHT {32};
+    static constexpr int MAXIMAL_FADING_VALUE {500};
+
+private:
+    std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT> m_frame {};
+
+    // it's the maximal value the fadingLevel of a pixel can have
+    // The higher the MAXIMALFADING, the longer it will take for a pixel
+    // to go completely black.
+    // It has default value of 500, which results to the display showing
+    // two different tones of grey every time a pixel is turned off
+    int32_t m_maximalFading;
+
 public:
     Display(Chip8::Fading fadingFlag) :
         m_maximalFading {(fadingFlag == Fading::on) ? MAXIMAL_FADING_VALUE : 0}
@@ -299,21 +311,6 @@ public:
     // wraps the pixels over the end of the screen
     bool drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, const uint8_t y);
 
-    static constexpr int DISPLAY_WIDTH {64};
-    static constexpr int DISPLAY_HEIGHT {32};
-    static constexpr int MAXIMAL_FADING_VALUE {500};
-
-private:
-    std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT> m_frame {};
-
-    // it's the maximal value the fadingLevel of a pixel can have
-    // The higher the MAXIMALFADING, the longer it will take for a pixel
-    // to go completely black.
-    // It has default value of 500, which results to the display showing
-    // two different tones of grey every time a pixel is turned off
-    int32_t m_maximalFading;
-
-public:
     const std::array<std::array<Pixel, DISPLAY_WIDTH>, DISPLAY_HEIGHT>* getDisplayFrame()
     {
         return &m_frame;

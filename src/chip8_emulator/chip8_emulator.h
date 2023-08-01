@@ -1,12 +1,8 @@
 #pragma once
 
 #include "chip8-core/chip8.h"
-#include <cstring>
-
-inline constexpr auto testLambda = []()
-    {
-        std::cout << "I'm a side effect!" << std::endl;
-    };
+#include <sound.h>
+#include <base64decode_sound.h>
 
 class Chip8Emulator
 {
@@ -17,27 +13,33 @@ public:
         std::string_view flagChip8Type,
         std::string_view flagDrawInstruction,
         std::string_view flagFading
-    )
-    : m_chip8 {
+    ):
+        // the callbacks playSound and pauseSound must be void functions now because
+        // SDL hasn't been initialized yet; they will be changed in the body of the constructor
+        m_chip8 {
         flagChip8Type,
         flagDrawInstruction,
         flagFading,
-        testLambda,
-        testLambda
+        []{},
+        []{}
         }
     {
+        // the emulator needs SDL for the sound, keyboard and display
         SDL_Init(SDL_INIT_EVERYTHING);
 
+        // now that SDL has been initialized, we can construct a valid sound
         m_sound = Sound(reinterpret_cast<const void*>(Base64Sound::DECODED_SOUND.data()),
                     Base64Sound::DECODED_SOUND_SIZE);
 
+        // and give non trivial functions to playSound and pauseSound callbacks of Chip8,
+        // which wouldn't have worked if SDL wasn't initialized
         m_chip8.m_playSoundCallback = [this]{ this->m_sound.playSound(); };
         m_chip8.m_pauseSoundCallback = [this]{ this->m_sound.pauseSound(); };
     }
 
     ~Chip8Emulator()
     {
-        // necessary because the distructor of a valid Sound uses SDL
+        // necessary because the destructor of a valid Sound uses SDL
         m_sound = Sound(nullptr, 0);
 
         SDL_Quit();
@@ -68,17 +70,17 @@ public:
     }
 
 private:
-    Sound m_sound {nullptr, 0};
+    Sound m_sound {nullptr, 0}; // invalid sound, will become valid after SDL is initialized in the constructor
     Chip8 m_chip8;
 
     // updates the renderer window frame buffer to show the display of the chip8
     void renderDisplay(SDL_Renderer* renderer);
 
     // updates isRunning to false if the user clicks to close the window
-    // and changes the value of the m_chip8PressedKey if the user presses a valid key on their keyboard
+    // and updates the pressed keys if the user presses a valid key on their keyboard
     void handleSystemEvents(SDL_Event ev);
 
-    // runs the program written in the file specified by the path
+    // runs the chip8 rom written in the file specified by the path
     void loadAndRunChip8Program(
         std::filesystem::path&& programPath,
         std::future<bool>&& futureDisplayInitialized)

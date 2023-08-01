@@ -136,12 +136,12 @@ void Chip8Emulator::renderDisplay(SDL_Renderer* renderer)
             else if (pixel.m_fadingLevel > 0)
             {
                 // the lightest grey we want to show has rgb code (125,125,125)
-                constexpr int32_t lightestGrey {125};
+                constexpr int32_t LIGHTEST_GREY {125};
 
                 // the off pixel gets a color basing on the fading level
                 // we want the color to be given by the rgb code
                 // (colorShade,colorShade,colorShade), which is grey
-                int32_t n = Chip8::Display::MAXIMAL_FADING_VALUE/lightestGrey;
+                constexpr int32_t n = Chip8::Display::MAXIMAL_FADING_VALUE/LIGHTEST_GREY;
                 uint8_t colorShade = static_cast<uint8_t>(pixel.m_fadingLevel/n);
 
                 SDL_SetRenderDrawColor(renderer, colorShade,colorShade,colorShade, 255);
@@ -168,6 +168,8 @@ void Chip8Emulator::handleSystemEvents(SDL_Event ev)
                 std::unique_lock soundTimerMutexLock {m_chip8.m_soundTimerMutex};
                 m_chip8.m_isRunning = false;
                 m_chip8.m_eventHappened.notify_one();
+                // we need to notify the delay and sound timer threads so that they can
+                // exit the function they are executing and be joined at the destructioin of Chip8
                 m_chip8.m_setDelayTimer.notify_one();
                 m_chip8.m_setSoundTimer.notify_one();
                 break;
@@ -176,6 +178,8 @@ void Chip8Emulator::handleSystemEvents(SDL_Event ev)
             case SDL_KEYDOWN:
             {
                 std::unique_lock eventMutexLock {m_chip8.m_eventMutex};
+
+                // no need to repeat the following if this is a repeated pressed key event of the same key
                 if (ev.key.repeat == 0)
                 {
                     uint8_t chip8PressedKey {getChip8Key(ev.key.keysym.scancode).value()};
@@ -194,6 +198,8 @@ void Chip8Emulator::handleSystemEvents(SDL_Event ev)
 
                 std::unique_lock eventMutexLock {m_chip8.m_eventMutex};
                 m_chip8.m_chip8Keys[releasedKey] = false;
+                m_chip8.m_lastPressedKey = std::nullopt;
+
                 break;
             }
 
@@ -207,7 +213,6 @@ void Chip8Emulator::handleSystemEvents(SDL_Event ev)
 void Chip8Emulator::renderAndKeyboard(std::promise<bool>& promiseDisplayInitialized)
 {
     // set up renderer and window
-
     SDL_Window* window {SDL_CreateWindow(
                             "Chip8",
                             SDL_WINDOWPOS_CENTERED,
@@ -215,7 +220,7 @@ void Chip8Emulator::renderAndKeyboard(std::promise<bool>& promiseDisplayInitiali
                             1280, 640,
                             SDL_WINDOW_SHOWN)};
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-    //SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+    //SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL); not sure if I have to add this for windows
 
     promiseDisplayInitialized.set_value(true);
 

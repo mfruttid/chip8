@@ -1,5 +1,4 @@
 #include <chip8.h>
-#include <sound.h>
 #include <chrono>
 
 // decreases timer at a rate of 60 per second

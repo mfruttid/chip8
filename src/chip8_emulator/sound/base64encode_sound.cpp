@@ -1,11 +1,7 @@
 #include <base64.h>
 #include <filesystem>
-#include <cassert>
 #include <fstream>
-#include <algorithm>
 #include <iostream>
-#include <cstdint>
-#include <iterator>
 #include <read_from_file.h>
 
 std::vector<char> readBynary(std::filesystem::path& soundPath)

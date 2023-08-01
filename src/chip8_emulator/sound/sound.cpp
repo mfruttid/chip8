@@ -1,12 +1,14 @@
 #include "sound.h"
+#include <iostream>
 
 Sound::Sound(const void* mem, size_t size)
 {
-    if (!mem)
+    if (!mem || !size)
     {
         return;
     }
 
+    // prepare a read-only memory buffer for the sound to be used to load data in memory
     auto* p_fromConstMem = SDL_RWFromConstMem(mem, static_cast<int>(size));
     if (!p_fromConstMem)
     {
@@ -14,6 +16,7 @@ Sound::Sound(const void* mem, size_t size)
         return;
     }
 
+    // load the sound buffer into memory of device, possibly decoding it
     auto* p_audioSpec = SDL_LoadWAV_RW(
         p_fromConstMem,
         1,
@@ -21,7 +24,6 @@ Sound::Sound(const void* mem, size_t size)
         &m_soundBufferStart,
         &m_soundBufferLength);
 
-    // load the sound buffer into memory of device, checking that this doesn't cause any error
     if (!p_audioSpec)
     {
         std::cerr << "Sound loading error: " << SDL_GetError() << "\n";
@@ -96,6 +98,7 @@ void Sound::pauseSound()
     if (isValid())
     {
         SDL_PauseAudioDevice(m_device, 1);
+        // clear queue to avoid filling it up unnecessarily every time we play a sound
         SDL_ClearQueuedAudio(m_device);
     }
 }

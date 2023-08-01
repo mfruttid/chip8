@@ -1,5 +1,8 @@
 #include "chip8.h"
 #include <read_from_file.h>
+#include <random>
+#include <cassert>
+#include <ranges>
 
 Chip8::Pixel Chip8::Pixel::operator^(Status s)
 {
@@ -30,17 +33,17 @@ bool Chip8::Display::drwWrap(std::vector<uint8_t>&& sprite, const uint8_t x, con
     size_t size = sprite.size();
 
     // the coordinates (x,y) must represent a point inside the display
-    assert(x < 64 && y < 32);
+    assert(x < DISPLAY_WIDTH && y < DISPLAY_HEIGHT);
     // the sprite can be maximum 16 lines long by the chip8 documentation
     assert(size < 16);
 
     for (size_t row = 0; row < size; ++row)
     {
-        size_t rowOffset = (y + row) % 32;
+        size_t rowOffset = (y + row) % DISPLAY_HEIGHT;
 
         for (int column = 7; column >= 0; --column)
         {
-            size_t columnOffset = (x + column) % 64;
+            size_t columnOffset = (x + column) % DISPLAY_WIDTH;
 
             Pixel& pixel {m_frame[rowOffset][columnOffset]};
 
@@ -72,12 +75,12 @@ bool Chip8::Display::drwClip(std::vector<uint8_t>&& sprite, const uint8_t x, con
     size_t size = sprite.size();
 
     // the coordinates (x,y) must represent a point inside the display
-    assert(x < 64 && y < 32);
+    assert(x < DISPLAY_WIDTH && y < DISPLAY_HEIGHT);
     // the sprite can be maximum 16 lines long by the chip8 documentation
     assert(size < 16);
 
-    int maxWidth = std::min(63, x+7); // necessary for clipping the sprite if the width exceeds the display
-    int maxHeight = std::min(32-y, static_cast<int>(size)); // necessary for clipping the sprite if the height exceeds the display
+    int maxWidth = std::min(DISPLAY_WIDTH-1, x+7); // necessary for clipping the sprite if the width exceeds the display
+    int maxHeight = std::min(DISPLAY_HEIGHT-y, static_cast<int>(size)); // necessary for clipping the sprite if the height exceeds the display
 
     for (int offset = 0; offset < maxHeight; ++offset)
     {
@@ -124,15 +127,15 @@ Chip8::Chip8(
     std::function<void()> playSoundCallback,
     std::function<void()> pauseSoundCallback
     ) :
-    m_playSoundCallback {playSoundCallback},
-    m_pauseSoundCallback {pauseSoundCallback},
-    m_PC {Address(0x200)}, // the first 0x200 addresses in m_ramPtr are not used by the program
     m_fadingFlag {(flagFading == "-n") ? Fading::off : Fading::on},
     m_display {std::make_unique<Display>(m_fadingFlag)},
+    m_playSoundCallback {playSoundCallback},
+    m_pauseSoundCallback {pauseSoundCallback},
     m_instructionSet {(flagChip8Type == "-s") ? InstructionSet::schip8 : InstructionSet::chip8},
-    m_drawBehaviour {(flagDrawInstruction == "-w") ? DrawBehaviour::wrap : DrawBehaviour::clip}
+    m_drawBehaviour {(flagDrawInstruction == "-w") ? DrawBehaviour::wrap : DrawBehaviour::clip},
+    m_PC {Address(0x200)} // the first 0x200 addresses in m_ramPtr are not used by the program
 {
-    // the first addresses of the m_ramPtr are used for the hexadecimal sprites
+    // the first addresses of the m_ramPtr are used for the hexadecimal sprites, so we copy them starting from 0
     uint8_t ramIndex = 0;
     for (uint8_t u = 0x0; u <= 0xf; ++u)
     {
@@ -819,6 +822,7 @@ void Chip8::drw(const uint16_t xyn)
     }
 
     // the variable sprite is now invalid
+
     if (pixelWasUnset)
     {
         m_registers[0xf] = 1;
