@@ -1,13 +1,16 @@
 #include "chip8_emulator/chip8_emulator.h"
+#include <iostream>
+#include <cstring>
 
 // sets up the arguments to construct the emulator taking them as input from the user
 // when they started the program
-const std::array<std::string ,3> processArguments(int argc, char** argv)
+const std::array<std::string ,4> processArguments(int argc, char** argv)
 {
     // default options
     std::string flagChip8 {"-chip8"}; // default is chip8 instructions
     std::string flagDrawInstruction {"-clipping"}; // default is clipping
-    std::string flagFading {"-fading"}; // default is fading simulating the phosphorus screen
+    std::string flagFading {"-fading"}; // default is fading simulating the phosphor screen
+    std::string programPath {};
 
     for (int i {0}; i<argc; ++i)
     {
@@ -44,8 +47,12 @@ const std::array<std::string ,3> processArguments(int argc, char** argv)
                 break;
             }
         }
+        else
+        {
+            programPath = argv[i];
+        }
     }
-    const std::array<std::string ,3> res {flagChip8, flagDrawInstruction, flagFading};
+    const std::array<std::string ,4> res {programPath, flagChip8, flagDrawInstruction, flagFading};
     return res;
 }
 
@@ -73,11 +80,11 @@ int main(int argc, char** argv)
             return 0;
         }
 
-        std::filesystem::path programPath {argv[1]};
+        std::filesystem::path programPath {settings[0]};
 
-        const std::string_view flagChip8 = settings[0];
-        const std::string_view flagDrawInstruction = settings[1];
-        const std::string_view fadingFlag = settings[2];
+        const std::string_view flagChip8 = settings[1];
+        const std::string_view flagDrawInstruction = settings[2];
+        const std::string_view fadingFlag = settings[3];
 
         Chip8Emulator emulator{flagChip8, flagDrawInstruction, fadingFlag};
 

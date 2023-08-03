@@ -220,7 +220,6 @@ void Chip8Emulator::renderAndKeyboard(std::promise<bool>& promiseDisplayInitiali
                             1280, 640,
                             SDL_WINDOW_SHOWN)};
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-    //SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL); not sure if I have to add this for windows
 
     promiseDisplayInitialized.set_value(true);
 
